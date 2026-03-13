@@ -1,0 +1,99 @@
+/* Heatmap Container */
+.heatmap-container {
+  background: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #f0f0f0;
+}
+
+.heatmap-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+}
+
+/* Requirement 6: Fix Map Tile Rendering Issues */
+.leaflet-container {
+  height: 500px;
+  width: 100%;
+  border-radius: 12px;
+  background: #f8f9fa;
+  border: 1px solid #eee;
+}
+
+/* Requirement 7: Heatmap Legend */
+.heatmap-legend {
+  margin-top: 20px;
+  padding: 15px;
+  background: #fdfdfd;
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  border: 1px solid #f0f0f0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.color-low { background: blue; }
+.color-moderate { background: lime; }
+.color-high { background: yellow; }
+.color-hotspot { background: red; }
+
+/* Popup Styling */
+.popup-content {
+  min-width: 160px;
+}
+
+.popup-content h4 {
+  margin: 0 0 5px 0;
+  color: #646cff;
+  font-weight: 700;
+}
+
+.popup-content p {
+  margin: 3px 0;
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.popup-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+
+.priority-high, .priority-critical { background: #fee2e2; color: #dc2626; }
+.priority-medium { background: #fef3c7; color: #d97706; }
+.priority-low { background: #dcfce7; color: #16a34a; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .leaflet-container {
+    height: 350px;
+  }
+  .heatmap-legend {
+    gap: 10px;
+  }
+}

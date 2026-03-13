@@ -22,7 +22,16 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Route Registration
 const complaintRoutes = require('./routes/complaints');
+const statsRoutes = require('./routes/stats');
+const allocationRoutes = require('./routes/allocation');
+const ticketRoutes = require('./routes/tickets');
+const notificationRoutes = require('./routes/notifications'); // Requirement 7
+
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/resource-allocation', allocationRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/notifications', notificationRoutes); // Requirement 7
 
 // Database Connection and Data Migration
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civic_ai';
@@ -33,30 +42,35 @@ mongoose.connect(MONGODB_URI)
     console.log('Successfully connected to MongoDB');
     
     try {
-      // 1. DATA MIGRATION: Fix documents where 'location' is a string (legacy data)
-      // This moves the string to 'address' and provides a default GeoJSON point
-      const malformedDocs = await Complaint.find({ location: { $type: "string" } });
+      // 1. DATA MIGRATION: Fix legacy documents missing 'phone' or having string 'location'
+      const legacyDocs = await Complaint.find({ 
+        $or: [
+          { location: { $type: "string" } },
+          { phone: { $exists: false } }
+        ] 
+      });
       
-      if (malformedDocs.length > 0) {
-        console.log(`Found ${malformedDocs.length} legacy documents. Migrating...`);
+      if (legacyDocs.length > 0) {
+        console.log(`Found ${legacyDocs.length} legacy documents. Migrating...`);
         
-        for (let doc of malformedDocs) {
-          const oldLocationText = doc.location;
-          // Use direct mongo update to bypass schema validation temporarily
+        for (let doc of legacyDocs) {
+          const update = {};
+          if (typeof doc.location === 'string') {
+            update.address = doc.location;
+            update.location = { type: "Point", coordinates: [77.5946, 12.9716] };
+          }
+          if (!doc.phone) {
+            update.phone = "0000000000"; // Fallback for legacy data
+          }
+          
           await mongoose.connection.collection('complaints').updateOne(
             { _id: doc._id },
-            { 
-              $set: { 
-                address: oldLocationText,
-                location: { type: "Point", coordinates: [77.5946, 12.9716] } // Default coordinates
-              } 
-            }
+            { $set: update }
           );
         }
         console.log('Migration complete.');
       }
 
-      // 2. ENSURE INDEXES ARE CREATED
       await Complaint.createIndexes();
       console.log('Geospatial indexes verified and active');
     } catch (err) {

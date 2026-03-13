@@ -1,88 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardStats from '../components/DashboardStats';
+import ResourceAllocationPanel from '../components/ResourceAllocationPanel';
 import ComplaintCard from '../components/ComplaintCard';
+import BangaloreHeatmap from '../components/BangaloreHeatmap'; 
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [complaints, setComplaints] = useState([]);
+  const [allComplaints, setAllComplaints] = useState([]); 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('Infrastructure');
+
+  // Requirement 1: Added Rejected/Cancelled statuses to tabs
+  const categories = ['Infrastructure', 'Sanitation', 'Utilities', 'Transportation', 'Public Services', 'Rejected'];
 
   useEffect(() => {
     fetchComplaints();
-  }, []);
+    fetchAllComplaints(); 
+  }, [activeTab]);
 
   const fetchComplaints = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/complaints');
-      setComplaints(response.data);
+      let url = `http://localhost:5000/api/complaints`;
+      if (activeTab === 'Rejected') {
+        url += `?status=Rejected`;
+      } else {
+        url += `?category=${activeTab}`;
+      }
+      
+      const response = await axios.get(url);
+      
+      let filtered = response.data;
+      if (activeTab !== 'Rejected') {
+        filtered = response.data.filter(c => c.status !== 'Rejected');
+      }
+
+      setComplaints(filtered);
       setLoading(false);
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Could not load complaints. Make sure the server is running.');
       setLoading(false);
     }
   };
 
-  const handleUpdateStatus = async (id, newStatus) => {
+  const fetchAllComplaints = async () => {
     try {
-      await axios.patch(`http://localhost:5000/api/complaints/${id}`, { status: newStatus });
-      // Refresh complaints list
-      fetchComplaints();
+      const response = await axios.get('http://localhost:5000/api/complaints');
+      setAllComplaints(response.data);
     } catch (err) {
-      console.error('Update error:', err);
-      alert('Failed to update status. Please try again.');
+      console.error('Fetch all error:', err);
     }
   };
 
-  // Calculate Summary Stats
-  const stats = {
-    total: complaints.length,
-    resolved: complaints.filter(c => c.status === 'Resolved').length,
-    highPriority: complaints.filter(c => c.priority === 'High' || c.priority === 'Critical').length
-  };
-
-  if (loading) return <div className="loading">Loading Dashboard...</div>;
+  if (loading) return <div className="loading">Updating Dashboard...</div>;
 
   return (
     <div className="admin-page">
-      <h2>Civic Admin Control Panel</h2>
+      <h2>Civic Intelligence Dashboard (Moderator)</h2>
       
-      {error && <div className="alert error">{error}</div>}
+      <DashboardStats />
+      
+      <BangaloreHeatmap complaints={allComplaints} />
 
-      <div className="stats-container">
-        <div className="stat-card">
-          <h4>Total Complaints</h4>
-          <p className="stat-value">{stats.total}</p>
+      <ResourceAllocationPanel />
+
+      <div className="admin-sections">
+        <div className="category-tabs">
+          {categories.map(cat => (
+            <button 
+              key={cat} 
+              className={`tab-btn ${activeTab === cat ? 'active' : ''} ${cat === 'Rejected' ? 'tab-cancel' : ''}`}
+              onClick={() => setActiveTab(cat)}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
-        <div className="stat-card">
-          <h4>Resolved</h4>
-          <p className="stat-value resolved">{stats.resolved}</p>
-        </div>
-        <div className="stat-card">
-          <h4>High Priority</h4>
-          <p className="stat-value high-priority">{stats.highPriority}</p>
-        </div>
+
+        <section className="queue-section">
+          <h3>{activeTab} Complaints Queue</h3>
+          <div className="complaints-grid">
+            {complaints.length > 0 ? (
+              complaints.map(complaint => (
+                <ComplaintCard 
+                  key={complaint._id} 
+                  complaint={complaint} 
+                  isAdmin={true}
+                  onRefresh={fetchComplaints}
+                />
+              ))
+            ) : (
+              <p className="empty">No complaints found in this section.</p>
+            )}
+          </div>
+        </section>
       </div>
 
-      <section className="reports-section">
-        <h3>Incoming Community Reports</h3>
-        <div className="complaints-grid">
-          {complaints.length > 0 ? (
-            complaints.map(complaint => (
-              <ComplaintCard 
-                key={complaint._id} 
-                complaint={complaint} 
-                isAdmin={true}
-                onUpdateStatus={handleUpdateStatus}
-              />
-            ))
-          ) : (
-            <p className="empty-state">No complaints to display.</p>
-          )}
-        </div>
-      </section>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .category-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .tab-btn { padding: 10px 24px; border: 1px solid #ddd; border-radius: 25px; background: white; cursor: pointer; white-space: nowrap; font-weight: 600; color: #666; transition: all 0.3s; }
+        .tab-btn:hover { background: #f0f0f0; }
+        .tab-btn.active { background: #646cff; color: white; border-color: #646cff; }
+        .tab-btn.tab-cancel.active { background: #e74c3c; border-color: #e74c3c; }
+        
+        .complaints-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .empty { padding: 40px; text-align: center; color: #999; font-style: italic; background: #fafafa; border-radius: 12px; }
+      `}} />
     </div>
   );
 };

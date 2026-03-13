@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const complaintSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  address: { type: String, required: true },
+  phone: { type: String, required: true },
   description: { type: String, required: true },
   category: { 
     type: String, 
@@ -18,27 +18,32 @@ const complaintSchema = new mongoose.Schema({
   department: { type: String, default: 'General' },
   status: { 
     type: String, 
-    enum: ['Pending', 'In Progress', 'Resolved', 'Closed'],
+    enum: ['Pending', 'Accepted', 'Rejected', 'Assigned', 'Resolved', 'Ticket Raised'],
     default: 'Pending' 
   },
+  ticketId: { type: String }, // Requirement 4
+  ticketStatus: { type: String, default: 'Open' }, // Requirement 3
+  rejectionReason: { type: String },
   report_count: { type: Number, default: 1 },
   image: { type: String },
+  cancelReason: { type: String },
+  cancelledAt: { type: Date },
+  accuracy: { type: Number },
   location: {
     type: {
       type: String,
-      enum: ['Point'],
-      required: true,
-      default: 'Point'
+      enum: ["Point"],
+      default: "Point"
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
+      type: [Number],
       required: true
     }
   },
+  address: { type: String },
   createdAt: { type: Date, default: Date.now }
-}, { collection: 'complaints' }); // Explicitly set collection name
+}, { collection: 'complaints' });
 
-// Explicit 2dsphere index for geospatial queries
-complaintSchema.index({ location: '2dsphere' });
+complaintSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model('Complaint', complaintSchema);

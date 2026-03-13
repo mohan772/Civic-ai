@@ -12,42 +12,46 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 const classifyComplaint = async (description) => {
   try {
     const prompt = `
-You are an AI civic complaint analyzer.
+You are a highly efficient AI civic complaint analyzer for a smart city platform.
 
-Analyze the complaint and determine:
+Analyze the following complaint description and categorize it based on the following rules:
 
-1. Which category the issue belongs to:
-Infrastructure, Sanitation, Utilities, Transportation, Public Services
+1. **Categories & Departments Mapping:**
+   - **Infrastructure**: Issues related to roads, bridges, potholes, etc. 
+     *Dept: BBMP Roads*
+   - **Sanitation**: Issues related to garbage, waste, sewage, cleaning, etc. 
+     *Dept: BBMP Waste Management*
+   - **Utilities**: Issues related to water, electricity, pipelines, transformers, etc. 
+     *Dept: BWSSB* (for water/sewage) or *BESCOM* (for electricity)
+   - **Transportation**: Issues related to traffic signals, congestion, road signs, etc. 
+     *Dept: Traffic Police*
+   - **Public Services**: Issues related to streetlights, parks, public toilets, etc. 
+     *Dept: BBMP Electrical* (for streetlights) or *Municipal Services*
 
-2. Which department is responsible:
-- Infrastructure → BBMP Infrastructure
-- Sanitation → BBMP Waste Management
-- Utilities → BESCOM / BWSSB
-- Transportation → Traffic Police
-- Public Services → Municipal Services
+2. **Semantic Detection Examples:**
+   - "pothole", "road damage" -> Category: Infrastructure, Dept: BBMP Roads
+   - "garbage", "waste", "trash" -> Category: Sanitation, Dept: BBMP Waste Management
+   - "water leakage", "pipeline leak" -> Category: Utilities, Dept: BWSSB
+   - "electric transformer", "power outage", "short circuit" -> Category: Utilities, Dept: BESCOM
+   - "traffic signal not working", "congestion" -> Category: Transportation, Dept: Traffic Police
+   - "streetlight broken", "dark street" -> Category: Public Services, Dept: BBMP Electrical
 
-3. The urgency level:
-Low, Medium, High, Critical
+3. **Urgency Level (Priority):**
+   - Low, Medium, High, Critical (Determine based on the severity described).
 
-4. Whether the complaint is fake or invalid.
-Mark complaint as fake if:
-- complaint is unrelated to civic issues
-- random text
-- abusive language
-- personal complaints
-- advertisements
-- nonsense sentences
+4. **Validity Check:**
+   - Mark as "isFake: true" if the text is random, abusive, unrelated to civic issues, advertisements, or nonsense.
 
 Complaint:
 "${description}"
 
 Respond ONLY in JSON format:
 {
-  "category": "...",
-  "department": "...",
-  "priority": "...",
+  "category": "Infrastructure | Sanitation | Utilities | Transportation | Public Services",
+  "department": "BBMP Roads | BBMP Waste Management | BWSSB | BESCOM | Traffic Police | BBMP Electrical | Municipal Services",
+  "priority": "Low | Medium | High | Critical",
   "isFake": boolean,
-  "reason": "..."
+  "reason": "Short reason for classification"
 }`;
 
     const result = await model.generateContent(prompt);
@@ -58,7 +62,6 @@ Respond ONLY in JSON format:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const aiResult = JSON.parse(jsonMatch[0]);
-      console.log("AI classification:", aiResult);
       return aiResult;
     }
     

@@ -2,8 +2,13 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const axios = require('axios');
 const Complaint = require('../models/Complaint');
+const Citizen = require('../models/Citizen'); 
+const Notification = require('../models/Notification'); 
+const Ticket = require('../models/Ticket'); // Required for creating tickets
 const { classifyComplaint } = require('../services/aiClassifier');
+const { detectCategoryByKeywords = () => null } = require('../services/categoryClassifier');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -11,108 +16,186 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// POST: Create or Update a Complaint (with AI Intelligence & Robust Duplicate Detection)
-router.post('/', upload.single('image'), async (req, res) => {
-  console.log('--- Incoming Request ---');
-  console.log('Body:', req.body);
-  console.log('File:', req.file);
+const deptMapping = {
+  Infrastructure: 'BBMP Roads',
+  Sanitation: 'BBMP Waste Management',
+  Utilities: 'BWSSB / BESCOM',
+  Transportation: 'Traffic Police',
+  'Public Services': 'Municipal Services'
+};
 
+// Helper to update trust score and notify citizen
+const updateTrustAndNotify = async (phone, delta, message, complaintId) => {
   try {
-    const { name, location: address, description } = req.body;
+    const citizen = await Citizen.findOne({ phone });
+    if (citizen) {
+      citizen.trustScore = Math.min(100, Math.max(0, citizen.trustScore + delta));
+      if (delta > 0) citizen.validComplaints += 1;
+      if (delta < 0) citizen.fakeComplaints += 1;
+      await citizen.save();
+    }
     
-    // 1. Validate coordinates
-    const lng = parseFloat(req.body.lng);
-    const lat = parseFloat(req.body.lat);
+    await Notification.create({
+      userPhone: phone,
+      message,
+      complaintId
+    });
+  } catch (err) {
+    console.warn("Trust/Notify error:", err.message);
+  }
+};
 
-    // Reject if coordinates are missing, NaN, or [0,0]
-    if (isNaN(lng) || isNaN(lat) || (lng === 0 && lat === 0)) {
-      return res.status(400).json({ error: 'Invalid location coordinates. Please provide a valid location.' });
+// POST: Create Complaint
+router.post('/', upload.single('image'), async (req, res) => {
+  try {
+    const { name, phone, description, priority: userPriority } = req.body;
+    
+    if (!phone) return res.status(400).json({ message: "Phone number is required" });
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) return res.status(400).json({ message: "Invalid Indian phone number" });
+
+    let citizen = await Citizen.findOne({ phone });
+    if (!citizen) {
+      citizen = new Citizen({ phone });
+    }
+    citizen.totalComplaints += 1;
+    await citizen.save();
+
+    const { latitude, longitude, accuracy } = req.body;
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const acc = accuracy ? parseFloat(accuracy) : null;
+
+    if (isNaN(lng) || isNaN(lat)) return res.status(400).json({ error: 'Location data required.' });
+
+    const location = { type: "Point", coordinates: [lng, lat] };
+
+    let readableAddress = "Unknown Location";
+    try {
+      const geoResponse = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+        headers: { 'User-Agent': 'CivicAI-Complaint-Platform' }
+      });
+      if (geoResponse.data && geoResponse.data.display_name) readableAddress = geoResponse.data.display_name;
+    } catch (geoErr) {
+      readableAddress = req.body.locationText || "Address Fetch Failed";
     }
 
-    // Strict GeoJSON range validation
-    if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
-      return res.status(400).json({ error: 'Coordinates out of valid range (Lng: -180 to 180, Lat: -90 to 90).' });
-    }
-
-    console.log('Validated coordinates:', { lng, lat });
-
-    // 2. AI Classification and Validation
+    // AI Classification (Requirement 1 & 2)
+    const keywordCategory = detectCategoryByKeywords(description);
     const aiResult = await classifyComplaint(description);
     
-    // Reject fake/invalid complaints
     if (aiResult.isFake) {
-      console.log('Complaint rejected (isFake):', aiResult.reason);
-      return res.status(400).json({
-        error: 'Invalid complaint',
-        reason: aiResult.reason
-      });
+      await updateTrustAndNotify(phone, -20, "Your report was classified as invalid/fake by our AI system.", null);
+      return res.status(400).json({ error: 'Invalid complaint', reason: aiResult.reason });
     }
 
-    const category = aiResult.category || 'Other';
-    const department = aiResult.department || 'General';
-    const priority = aiResult.priority || 'Medium';
+    const category = keywordCategory || aiResult.category || 'Public Services';
+    const department = aiResult.department || (keywordCategory ? deptMapping[keywordCategory] : 'Municipal Services');
+    let finalPriority = ['Low', 'Medium', 'High', 'Critical'].includes(userPriority) ? userPriority : (aiResult.priority || 'Medium');
+    
+    if (citizen.trustScore > 80) finalPriority = 'High';
+    const isFlagged = citizen.trustScore < 30;
 
-    // 3. DUPLICATE DETECTION using $geoNear (Aggressive 15m radius)
-    // We check for duplicates BEFORE saving the new document to prevent self-matching
     const duplicateResults = await Complaint.aggregate([
-      {
-        $geoNear: {
-          near: { type: 'Point', coordinates: [lng, lat] },
-          distanceField: 'distance',
-          maxDistance: 15, // Reduced radius to 15 meters
-          spherical: true,
-          key: 'location', 
-          query: { 
-            category: category,
-            status: { $ne: 'Resolved' }
-          }
-        }
-      },
+      { $geoNear: { near: location, distanceField: 'distance', maxDistance: 15, spherical: true, key: 'location', query: { category: category, status: { $ne: 'Resolved' } } } },
       { $limit: 1 }
     ]);
 
     if (duplicateResults.length > 0) {
-      const duplicate = await Complaint.findById(duplicateResults[0]._id);
-      duplicate.report_count += 1;
-      await duplicate.save();
-      
-      console.log('Duplicate detected within 15m radius, increased report_count');
-      return res.status(200).json({ 
-        duplicate: true, 
-        message: 'This issue has already been reported by someone else in this area.',
-        complaint: duplicate
-      });
+      const duplicate = await Complaint.findByIdAndUpdate(duplicateResults[0]._id, { $inc: { report_count: 1 } }, { new: true });
+      await updateTrustAndNotify(phone, -5, "Duplicate report detected. Your trust score has been slightly reduced.", duplicate._id);
+      return res.status(200).json({ duplicate: true, message: 'Already reported in this area.', complaint: duplicate });
     }
 
-    // 4. Create new complaint (GeoJSON format)
+    // Generate Ticket ID (Requirement 3)
+    const ticketId = "TCK-" + Date.now();
+
     const newComplaint = new Complaint({
-      name,
-      address,
-      description,
-      category,
-      priority,
-      department,
+      name, phone, description, category, 
+      priority: finalPriority, 
+      department, // Requirement 4
+      status: isFlagged ? 'Pending' : 'Accepted',
+      ticketId, // Requirement 4
+      ticketStatus: 'Open', // Requirement 3
       report_count: 1,
       image: req.file ? `/uploads/${req.file.filename}` : null,
-      location: {
-        type: 'Point',
-        coordinates: [lng, lat] // [longitude, latitude]
-      }
+      location,
+      accuracy: acc,
+      address: readableAddress
     });
 
     const saved = await newComplaint.save();
-    console.log('New complaint saved:', saved._id);
+
+    // Automatically create a Ticket for the corresponding department (Requirement 5)
+    if (!isFlagged) {
+      const ticket = new Ticket({
+        ticketId,
+        complaintId: saved._id,
+        department: department,
+        status: 'Pending'
+      });
+      await ticket.save();
+      await updateTrustAndNotify(phone, 5, `Your complaint has been accepted and routed to ${department}. Ticket: ${ticketId}`, saved._id);
+    }
+
     res.status(201).json(saved);
   } catch (err) {
-    console.error('Error processing complaint:', err.message);
-    res.status(500).json({ error: 'Internal server error: ' + err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Handle Status Updates
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { status, reason } = req.body;
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+
+    if (status === 'Accepted' && complaint.status === 'Pending') {
+      complaint.status = 'Accepted';
+      
+      // Generate ticket if not already present
+      if (!complaint.ticketId) {
+        complaint.ticketId = "TCK-" + Date.now();
+        complaint.ticketStatus = 'Open';
+      }
+
+      const ticket = new Ticket({
+        ticketId: complaint.ticketId,
+        complaintId: complaint._id,
+        department: complaint.department,
+        status: 'Pending'
+      });
+      
+      await ticket.save();
+      await complaint.save();
+      await updateTrustAndNotify(complaint.phone, 5, `Your complaint has been accepted and routed to ${complaint.department}. Ticket: ${complaint.ticketId}`, complaint._id);
+    } 
+    else if (status === 'Rejected') {
+      complaint.status = 'Rejected';
+      complaint.rejectionReason = reason;
+      await complaint.save();
+      await updateTrustAndNotify(complaint.phone, -20, `Your complaint has been rejected: ${reason}`, complaint._id);
+    } 
+    else {
+      complaint.status = status;
+      await complaint.save();
+    }
+
+    res.json(complaint);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 // GET: All complaints
 router.get('/', async (req, res) => {
   try {
-    const data = await Complaint.find().sort({ createdAt: -1 });
+    const { category, status } = req.query;
+    const filter = {};
+    if (category) filter.category = category;
+    if (status) filter.status = status;
+    const data = await Complaint.find(filter).sort({ createdAt: -1 });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Bengaluru City Boundary" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.3792, 12.7343],
+            [77.8827, 12.7343],
+            [77.8827, 13.1737],
+            [77.3792, 13.1737],
+            [77.3792, 12.7343]
+          ]
+        ]
+      }
+    }
+  ]
+}

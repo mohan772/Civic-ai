@@ -49,6 +49,53 @@
   outline: none;
 }
 
+/* Speech to Text Styles */
+.textarea-wrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
+.textarea-wrapper textarea {
+  padding-right: 50px;
+}
+
+.mic-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: #f1f3f4;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.3s ease;
+  z-index: 5;
+}
+
+.mic-btn:hover {
+  background: #e8eaed;
+  transform: scale(1.1);
+}
+
+.mic-btn.listening {
+  background: #ea4335;
+  color: white;
+  animation: pulse 1.5s infinite;
+  border-color: #d93025;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(234, 67, 53, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
+}
+
 .file-input {
   font-size: 14px;
   color: #777;

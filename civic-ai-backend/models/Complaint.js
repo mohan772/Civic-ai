@@ -18,7 +18,7 @@ const complaintSchema = new mongoose.Schema({
   department: { type: String, default: 'General' },
   status: { 
     type: String, 
-    enum: ['Pending', 'Accepted', 'Rejected', 'Assigned', 'Resolved', 'Ticket Raised'],
+    enum: ['Pending', 'Accepted', 'Rejected', 'Assigned', 'Resolved'],
     default: 'Pending' 
   },
   ticketId: { type: String }, // Requirement 4

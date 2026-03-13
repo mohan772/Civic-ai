@@ -26,7 +26,7 @@ Analyze the following complaint description and categorize it based on the follo
    - **Transportation**: Issues related to traffic signals, congestion, road signs, etc. 
      *Dept: Traffic Police*
    - **Public Services**: Issues related to streetlights, parks, public toilets, etc. 
-     *Dept: BBMP Electrical* (for streetlights) or *Municipal Services*
+     *Dept: Municipal Services*
 
 2. **Semantic Detection Examples:**
    - "pothole", "road damage" -> Category: Infrastructure, Dept: BBMP Roads
@@ -34,7 +34,7 @@ Analyze the following complaint description and categorize it based on the follo
    - "water leakage", "pipeline leak" -> Category: Utilities, Dept: BWSSB
    - "electric transformer", "power outage", "short circuit" -> Category: Utilities, Dept: BESCOM
    - "traffic signal not working", "congestion" -> Category: Transportation, Dept: Traffic Police
-   - "streetlight broken", "dark street" -> Category: Public Services, Dept: BBMP Electrical
+   - "streetlight broken", "dark street", "municipal service" -> Category: Public Services, Dept: Municipal Services
 
 3. **Urgency Level (Priority):**
    - Low, Medium, High, Critical (Determine based on the severity described).
@@ -48,7 +48,7 @@ Complaint:
 Respond ONLY in JSON format:
 {
   "category": "Infrastructure | Sanitation | Utilities | Transportation | Public Services",
-  "department": "BBMP Roads | BBMP Waste Management | BWSSB | BESCOM | Traffic Police | BBMP Electrical | Municipal Services",
+  "department": "BBMP Roads | BBMP Waste Management | BWSSB | BESCOM | Traffic Police | Municipal Services",
   "priority": "Low | Medium | High | Critical",
   "isFake": boolean,
   "reason": "Short reason for classification"

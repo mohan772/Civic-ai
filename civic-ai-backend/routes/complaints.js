@@ -6,7 +6,7 @@ const axios = require('axios');
 const Complaint = require('../models/Complaint');
 const Citizen = require('../models/Citizen'); 
 const Notification = require('../models/Notification'); 
-const Ticket = require('../models/Ticket'); // Required for creating tickets
+const Ticket = require('../models/Ticket'); 
 const { classifyComplaint } = require('../services/aiClassifier');
 const { detectCategoryByKeywords = () => null } = require('../services/categoryClassifier');
 
@@ -19,7 +19,7 @@ const upload = multer({ storage });
 const deptMapping = {
   Infrastructure: 'BBMP Roads',
   Sanitation: 'BBMP Waste Management',
-  Utilities: 'BWSSB / BESCOM',
+  Utilities: 'BWSSB',
   Transportation: 'Traffic Police',
   'Public Services': 'Municipal Services'
 };
@@ -45,7 +45,7 @@ const updateTrustAndNotify = async (phone, delta, message, complaintId) => {
   }
 };
 
-// POST: Create Complaint
+// POST: Create Complaint (Requirement 2)
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, phone, description, priority: userPriority } = req.body;
@@ -80,7 +80,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       readableAddress = req.body.locationText || "Address Fetch Failed";
     }
 
-    // AI Classification (Requirement 1 & 2)
+    // AI Classification (Requirement 2)
     const keywordCategory = detectCategoryByKeywords(description);
     const aiResult = await classifyComplaint(description);
     
@@ -94,8 +94,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     let finalPriority = ['Low', 'Medium', 'High', 'Critical'].includes(userPriority) ? userPriority : (aiResult.priority || 'Medium');
     
     if (citizen.trustScore > 80) finalPriority = 'High';
-    const isFlagged = citizen.trustScore < 30;
 
+    // Duplicate Detection
     const duplicateResults = await Complaint.aggregate([
       { $geoNear: { near: location, distanceField: 'distance', maxDistance: 15, spherical: true, key: 'location', query: { category: category, status: { $ne: 'Resolved' } } } },
       { $limit: 1 }
@@ -107,16 +107,11 @@ router.post('/', upload.single('image'), async (req, res) => {
       return res.status(200).json({ duplicate: true, message: 'Already reported in this area.', complaint: duplicate });
     }
 
-    // Generate Ticket ID (Requirement 3)
-    const ticketId = "TCK-" + Date.now();
-
     const newComplaint = new Complaint({
       name, phone, description, category, 
       priority: finalPriority, 
-      department, // Requirement 4
-      status: isFlagged ? 'Pending' : 'Accepted',
-      ticketId, // Requirement 4
-      ticketStatus: 'Open', // Requirement 3
+      department,
+      status: 'Pending', // Requirement 2: Status remains Pending
       report_count: 1,
       image: req.file ? `/uploads/${req.file.filename}` : null,
       location,
@@ -125,41 +120,25 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
 
     const saved = await newComplaint.save();
-
-    // Automatically create a Ticket for the corresponding department (Requirement 5)
-    if (!isFlagged) {
-      const ticket = new Ticket({
-        ticketId,
-        complaintId: saved._id,
-        department: department,
-        status: 'Pending'
-      });
-      await ticket.save();
-      await updateTrustAndNotify(phone, 5, `Your complaint has been accepted and routed to ${department}. Ticket: ${ticketId}`, saved._id);
-    }
-
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Handle Status Updates
+// PATCH: Update Complaint Status (Requirement 4 & 5)
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status, reason } = req.body;
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ message: "Complaint not found" });
 
-    if (status === 'Accepted' && complaint.status === 'Pending') {
+    if (status === 'Accepted') {
+      // Requirement 4: Accept Complaint Logic
       complaint.status = 'Accepted';
+      complaint.ticketId = "TCK-" + Date.now();
+      complaint.ticketStatus = 'Open';
       
-      // Generate ticket if not already present
-      if (!complaint.ticketId) {
-        complaint.ticketId = "TCK-" + Date.now();
-        complaint.ticketStatus = 'Open';
-      }
-
       const ticket = new Ticket({
         ticketId: complaint.ticketId,
         complaintId: complaint._id,
@@ -169,13 +148,26 @@ router.patch('/:id/status', async (req, res) => {
       
       await ticket.save();
       await complaint.save();
-      await updateTrustAndNotify(complaint.phone, 5, `Your complaint has been accepted and routed to ${complaint.department}. Ticket: ${complaint.ticketId}`, complaint._id);
+      
+      await updateTrustAndNotify(
+        complaint.phone, 
+        5, 
+        `Your complaint has been accepted and assigned to the ${complaint.department} department. Ticket: ${complaint.ticketId}`, 
+        complaint._id
+      );
     } 
     else if (status === 'Rejected') {
+      // Requirement 5: Cancel Complaint Logic
       complaint.status = 'Rejected';
       complaint.rejectionReason = reason;
       await complaint.save();
-      await updateTrustAndNotify(complaint.phone, -20, `Your complaint has been rejected: ${reason}`, complaint._id);
+      
+      await updateTrustAndNotify(
+        complaint.phone, 
+        -20, 
+        `Your complaint has been rejected: ${reason}`, 
+        complaint._id
+      );
     } 
     else {
       complaint.status = status;
@@ -191,10 +183,11 @@ router.patch('/:id/status', async (req, res) => {
 // GET: All complaints
 router.get('/', async (req, res) => {
   try {
-    const { category, status } = req.query;
+    const { category, status, department } = req.query;
     const filter = {};
     if (category) filter.category = category;
     if (status) filter.status = status;
+    if (department) filter.department = department;
     const data = await Complaint.find(filter).sort({ createdAt: -1 });
     res.json(data);
   } catch (err) {

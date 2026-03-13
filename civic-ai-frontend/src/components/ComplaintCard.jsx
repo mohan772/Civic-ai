@@ -15,14 +15,14 @@ const ComplaintCard = ({ complaint, isAdmin, onRefresh }) => {
     image, 
     department,
     report_count = 1,
-    rejectionReason
+    rejectionReason,
+    ticketId
   } = complaint || {};
 
-  // Requirement 3: Accept Complaint Action
   const handleAccept = async () => {
     try {
       await axios.patch(`http://localhost:5000/api/complaints/${_id}/status`, { status: 'Accepted' });
-      alert("Complaint accepted and assigned to department.");
+      alert("Complaint accepted and ticket raised.");
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error("Accept error:", err);
@@ -30,7 +30,6 @@ const ComplaintCard = ({ complaint, isAdmin, onRefresh }) => {
     }
   };
 
-  // Requirement 4: Cancel (Reject) Complaint Action
   const handleCancel = async () => {
     const reason = prompt("Please enter the reason for rejection:");
     if (!reason) return;
@@ -46,83 +45,178 @@ const ComplaintCard = ({ complaint, isAdmin, onRefresh }) => {
   };
 
   return (
-    <div className={`complaint-card priority-${priority?.toLowerCase()} status-${status.toLowerCase()}`}>
+    <div className={`gov-complaint-card priority-${priority?.toLowerCase()} status-${status.toLowerCase()}`}>
+      <div className="card-accent"></div>
+      
       <div className="card-header">
-        <div className="cat-group">
-          <span className="cat-tag">{category}</span>
-          <span className="dept-tag">{department}</span>
+        <div className="tag-group">
+          <span className="gov-tag category">{category}</span>
+          <span className="gov-tag department">{department}</span>
         </div>
-        <span className={`status-badge status-${status.toLowerCase()}`}>{status}</span>
+        <span className={`gov-status status-${status.toLowerCase()}`}>{status}</span>
       </div>
       
-      <div className="card-body">
-        <p className="description">{description}</p>
-        <div className="meta-info">
-          <p>📍 <strong>Location:</strong> {address}</p>
-          <p>👤 <strong>Reported by:</strong> {name || 'Anonymous'}</p>
-          <p>📞 <strong>Phone:</strong> {phone || 'Not provided'}</p>
-          <p>📊 <strong>Reports:</strong> {report_count}</p>
-          <p>⚡ <strong>Priority:</strong> <span className={`prio-tag prio-${priority?.toLowerCase()}`}>{priority}</span></p>
-        </div>
+      <div className="card-content">
+        <p className="main-desc">{description}</p>
         
+        <div className="info-grid">
+          <div className="info-item">
+            <span className="info-label">Location</span>
+            <span className="info-value">{address}</span>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Priority</span>
+            <span className={`info-value prio-text prio-${priority?.toLowerCase()}`}>{priority}</span>
+          </div>
+          {ticketId && (
+            <div className="info-item">
+              <span className="info-label">Ticket ID</span>
+              <span className="info-value id-text">{ticketId}</span>
+            </div>
+          )}
+        </div>
+
         {status === 'Rejected' && rejectionReason && (
-          <div className="rejection-info">
+          <div className="rejection-box">
             <strong>Rejection Reason:</strong> {rejectionReason}
           </div>
         )}
 
         {image && (
-          <div className="image-preview">
-            <img src={`http://localhost:5000${image}`} alt="Issue" />
+          <div className="image-attachment">
+            <img src={`http://localhost:5000${image}`} alt="Evidence" />
           </div>
         )}
       </div>
 
       <div className="card-footer">
-        <small>{new Date(createdAt).toLocaleString()}</small>
+        <div className="meta-user">
+          <span className="reporter">👤 {name || 'Anonymous'}</span>
+          <span className="date">📅 {new Date(createdAt).toLocaleDateString()}</span>
+        </div>
         
-        {/* Requirement 2: Show buttons only when status is Pending */}
         {isAdmin && status === 'Pending' && (
-          <div className="admin-actions">
-            <button onClick={handleAccept} className="btn-accept">Accept Complaint</button>
-            <button onClick={handleCancel} className="btn-cancel">Cancel Complaint</button>
+          <div className="admin-btn-group">
+            <button onClick={handleAccept} className="btn-gov btn-accept">Accept Complaint</button>
+            <button onClick={handleCancel} className="btn-gov btn-cancel">Cancel Complaint</button>
           </div>
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .complaint-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #eee; transition: transform 0.2s; position: relative; }
-        .complaint-card:hover { transform: translateY(-2px); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .cat-group { display: flex; gap: 8px; }
-        .cat-tag { background: #e3f2fd; color: #1565c0; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-        .dept-tag { background: #f1f8e9; color: #33691e; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-        .status-badge { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; }
-        .status-badge.status-rejected { color: #e74c3c; }
-        .status-badge.status-resolved { color: #27ae60; }
-        .status-badge.status-accepted { color: #646cff; }
+      <style>{`
+        .gov-complaint-card {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+          position: relative;
+          overflow: hidden;
+          border: 1px solid #eee;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        .card-accent {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background-color: var(--saffron);
+        }
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+        .tag-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .gov-tag {
+          font-size: 0.7rem;
+          font-weight: 800;
+          padding: 4px 10px;
+          border-radius: 20px;
+          text-transform: uppercase;
+        }
+        .gov-tag.category { background: #eef2ff; color: var(--ashoka-blue); }
+        .gov-tag.department { background: #f0fdf4; color: var(--green); }
         
-        .description { font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 15px; line-height: 1.4; }
-        .meta-info p { margin: 6px 0; font-size: 13px; color: #555; }
-        .prio-tag { font-weight: bold; padding: 2px 6px; border-radius: 3px; font-size: 11px; }
-        .prio-low { background: #e8f5e9; color: #2e7d32; }
-        .prio-medium { background: #fff3e0; color: #ef6c00; }
-        .prio-high { background: #ffebee; color: #c62828; }
-        .prio-critical { background: #b71c1c; color: white; }
+        .gov-status {
+          font-size: 0.75rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          color: #999;
+        }
+        .gov-status.status-accepted { color: var(--green); }
+        .gov-status.status-rejected { color: var(--red); }
+        .gov-status.status-pending { color: var(--saffron); }
+
+        .main-desc {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #1a1a1a;
+          line-height: 1.5;
+          margin: 0 0 15px 0;
+        }
+
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 15px;
+          margin-bottom: 15px;
+        }
+        .info-item { display: flex; flex-direction: column; }
+        .info-label { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 700; }
+        .info-value { font-size: 0.9rem; font-weight: 600; color: #444; }
         
-        .rejection-info { margin: 10px 0; padding: 10px; background: #fff5f5; border-left: 4px solid #e74c3c; color: #c53030; font-size: 14px; }
+        .prio-text { font-weight: 800; }
+        .prio-high { color: var(--red); }
+        .prio-medium { color: var(--saffron); }
+        .prio-low { color: var(--green); }
+        .id-text { color: var(--ashoka-blue); font-family: monospace; }
+
+        .rejection-box {
+          background: #fff5f5;
+          border: 1px solid #fed7d7;
+          padding: 12px;
+          border-radius: 8px;
+          color: var(--red);
+          font-size: 0.85rem;
+        }
+
+        .image-attachment {
+          border-radius: 10px;
+          overflow: hidden;
+          height: 200px;
+          border: 1px solid #eee;
+        }
+        .image-attachment img { width: 100%; height: 100%; object-fit: cover; }
+
+        .card-footer {
+          margin-top: auto;
+          padding-top: 15px;
+          border-top: 1px solid #f0f0f0;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        .meta-user { display: flex; justify-content: space-between; font-size: 0.8rem; color: #777; font-weight: 600; }
+
+        .admin-btn-group { display: flex; gap: 10px; }
+        .btn-gov {
+          flex: 1;
+          padding: 12px;
+          border: none;
+          color: white;
+          font-size: 0.85rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .btn-accept { background-color: var(--green); }
+        .btn-cancel { background-color: var(--red); }
         
-        .image-preview { margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
-        .image-preview img { width: 100%; height: 180px; object-fit: cover; display: block; }
-        
-        .admin-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-cancel { flex: 1; padding: 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
-        .btn-accept { flex: 1; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
-        
-        .complaint-card.status-rejected { opacity: 0.8; border-left: 5px solid #e74c3c; }
-        .complaint-card.status-pending { border-left: 5px solid #f39c12; }
-        .complaint-card.status-accepted { border-left: 5px solid #646cff; }
-      `}} />
+        .btn-gov:hover { opacity: 0.9; }
+      `}</style>
     </div>
   );
 };

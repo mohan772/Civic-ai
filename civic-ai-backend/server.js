@@ -26,12 +26,14 @@ const statsRoutes = require('./routes/stats');
 const allocationRoutes = require('./routes/allocation');
 const ticketRoutes = require('./routes/tickets');
 const notificationRoutes = require('./routes/notifications'); // Requirement 7
+const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/resource-allocation', allocationRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/notifications', notificationRoutes); // Requirement 7
+app.use('/api/analytics', analyticsRoutes);
 
 // Database Connection and Data Migration
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civic_ai';

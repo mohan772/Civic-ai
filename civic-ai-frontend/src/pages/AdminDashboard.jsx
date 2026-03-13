@@ -4,6 +4,11 @@ import DashboardStats from '../components/DashboardStats';
 import ResourceAllocationPanel from '../components/ResourceAllocationPanel';
 import ComplaintCard from '../components/ComplaintCard';
 import BangaloreHeatmap from '../components/BangaloreHeatmap'; 
+import CivicHealthGauge from '../components/CivicHealthGauge';
+import DepartmentPerformance from '../components/DepartmentPerformance';
+import CivicHotspots from '../components/CivicHotspots';
+import LiveCityMetrics from '../components/LiveCityMetrics';
+import EmergencyAlerts from '../components/EmergencyAlerts';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -70,7 +75,18 @@ const AdminDashboard = () => {
         <div className="accent-bar"></div>
       </header>
       
+      <div className="dashboard-top-section">
+        <LiveCityMetrics />
+        <EmergencyAlerts />
+      </div>
+
       <DashboardStats />
+
+      {/* NEW: Analytics Section */}
+      <section className="analytics-dashboard-grid">
+        <CivicHealthGauge />
+        <DepartmentPerformance />
+      </section>
 
       {/* Ticket Breakdown by Category/Department */}
       <section className="ticket-summary-section">
@@ -91,6 +107,11 @@ const AdminDashboard = () => {
         </div>
         <BangaloreHeatmap complaints={allComplaints} />
       </div>
+
+      {/* NEW: Hotspots Section */}
+      <section className="hotspots-section-gov">
+        <CivicHotspots />
+      </section>
 
       <div className="admin-content">
         <div className="view-toggle">
@@ -149,6 +170,14 @@ const AdminDashboard = () => {
         .page-header h1 { font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; }
         .accent-bar { width: 80px; height: 4px; background: var(--saffron); margin: 0 auto; }
 
+        .dashboard-top-section {
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: 25px;
+          padding: 0 20px;
+          margin-bottom: 30px;
+        }
+
         .section-subtitle { font-size: 1rem; color: var(--ashoka-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid var(--saffron); display: inline-block; }
         .ticket-summary-section { margin-bottom: 40px; padding: 0 20px; }
         .dept-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
@@ -157,7 +186,23 @@ const AdminDashboard = () => {
         .dept-name { display: block; font-size: 0.7rem; font-weight: 800; color: #666; text-transform: uppercase; margin-bottom: 5px; }
         .dept-count { font-size: 1.3rem; font-weight: 900; color: var(--ashoka-blue); }
         
+        .analytics-dashboard-grid { 
+          display: grid; 
+          grid-template-columns: 1fr 2fr; 
+          gap: 25px; 
+          padding: 0 20px; 
+          margin-bottom: 40px; 
+        }
+        .hotspots-section-gov {
+          padding: 0 20px;
+          margin-bottom: 40px;
+        }
+
         .view-toggle { display: flex; gap: 10px; margin-bottom: 25px; padding: 0 20px; }
+
+        @media (max-width: 992px) {
+          .analytics-dashboard-grid { grid-template-columns: 1fr; }
+        }
         .view-toggle button { padding: 10px 25px; border: 2px solid var(--ashoka-blue); background: white; color: var(--ashoka-blue); font-size: 0.85rem; font-weight: 800; border-radius: 30px; cursor: pointer; transition: all 0.3s; }
         .view-toggle button.active { background: var(--ashoka-blue); color: white; }
 

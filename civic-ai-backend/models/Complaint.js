@@ -41,7 +41,8 @@ const complaintSchema = new mongoose.Schema({
     }
   },
   address: { type: String },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  resolvedAt: { type: Date }
 }, { collection: 'complaints' });
 
 complaintSchema.index({ location: "2dsphere" });

@@ -169,6 +169,18 @@ router.patch('/:id/status', async (req, res) => {
         complaint._id
       );
     } 
+    else if (status === 'Resolved') {
+      complaint.status = 'Resolved';
+      complaint.resolvedAt = new Date();
+      await complaint.save();
+      
+      await updateTrustAndNotify(
+        complaint.phone,
+        10,
+        "Your complaint has been successfully resolved. Thank you for helping improve the city!",
+        complaint._id
+      );
+    }
     else {
       complaint.status = status;
       await complaint.save();

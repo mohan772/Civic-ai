@@ -1,0 +1,7 @@
+node_modules/
+civic-ai-backend/node_modules/
+civic-ai-frontend/node_modules/
+.env
+dist/
+build/
+uploads/

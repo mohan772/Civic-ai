@@ -1,0 +1,101 @@
+:root {
+  --primary-color: #646cff;
+  --secondary-color: #535bf2;
+  --bg-dark: #1a1a1a;
+  --text-light: #ffffff;
+  --text-muted: #888;
+  --pending-color: #ff9800;
+  --resolved-color: #4caf50;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--bg-dark);
+}
+
+.navbar-brand a {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.navbar-links {
+  display: flex;
+  list-style: none;
+  gap: 1.5rem;
+}
+
+.navbar-links a {
+  color: var(--text-light);
+  text-decoration: none;
+}
+
+.home-page, .submit-page, .status-page, .admin-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.complaint-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  background: #333;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+button {
+  background: var(--primary-color);
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.complaint-card {
+  background: #2a2a2a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--primary-color);
+}
+
+.status-pending { color: var(--pending-color); }
+.status-resolved { color: var(--resolved-color); }
+
+.dashboard-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  background: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  flex: 1;
+  text-align: center;
+}

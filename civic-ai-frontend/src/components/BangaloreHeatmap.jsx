@@ -35,8 +35,8 @@ const HeatLayer = ({ complaints }) => {
   useEffect(() => {
     if (!map || !complaints || complaints.length === 0) return;
 
-    // Aggregate intensity: Use report_count to determine the "heat"
-    // Normalize intensity so that higher counts are visibly hotter
+    // Aggregate intensity: Use an exponential scale to make hotspots "pop"
+    // This ensures that 6 reports look much hotter than 1 report
     const maxReports = Math.max(...complaints.map(c => c.report_count || 1), 1);
 
     const filteredPoints = complaints
@@ -49,27 +49,31 @@ const HeatLayer = ({ complaints }) => {
         c.location.coordinates[0] <= 77.8827
       )
       .map(c => {
-        // Intensity is relative to the highest count in the current dataset
-        // This ensures the map is always reactive to the "hottest" spot
-        const intensity = (c.report_count || 1) / maxReports;
+        const count = c.report_count || 1;
+        // Exponential weighting: (count / max) ^ 0.5 to boost mid-range visibility
+        // or count / max for linear. Let's use a boost for higher numbers.
+        const baseIntensity = count / maxReports;
+        const boostedIntensity = Math.pow(baseIntensity, 0.7) * 1.2; 
+
         return [
           c.location.coordinates[1],
           c.location.coordinates[0],
-          intensity * 1.5 // Multiplier to boost visibility of recurrent issues
+          boostedIntensity
         ];
       });
 
     const heatLayer = L.heatLayer(filteredPoints, {
-      radius: 35,
-      blur: 25,
+      radius: 40, // Increased radius for better blending
+      blur: 30,   // Increased blur for a smoother "heat" look
       maxZoom: 15,
       max: 1.0,
       gradient: {
-        0.1: "#3b82f6", // Info Blue
-        0.3: "#10b981", // Success Green
-        0.5: "#f59e0b", // Warning Saffron
-        0.7: "#f97316", // Orange
-        1.0: "#ef4444"  // Danger Red
+        0.1: "#3b82f6", // Blue
+        0.2: "#10b981", // Green
+        0.4: "#f59e0b", // Saffron (Warning)
+        0.6: "#f97316", // Orange
+        0.8: "#ef4444", // Red (Hotspot)
+        1.0: "#7f1d1d"  // Deep Dark Red (Critical)
       }
     }).addTo(map);
 

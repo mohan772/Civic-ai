@@ -182,4 +182,45 @@ router.get('/live-metrics', async (req, res) => {
   }
 });
 
+// 6. AI Incident Clustering
+router.get('/incident-clusters', async (req, res) => {
+  try {
+    const clusters = await Complaint.aggregate([
+      { $match: { status: 'Accepted' } },
+      {
+        $group: {
+          _id: {
+            area: { $arrayElemAt: [{ $split: ["$address", ","] }, 0] },
+            category: "$category"
+          },
+          complaints: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          area: "$_id.area",
+          category: "$_id.category",
+          complaints: 1,
+          severity: {
+            $cond: [
+              { $lt: ["$complaints", 5] }, "LOW",
+              { $cond: [{ $lte: ["$complaints", 10] }, "MEDIUM", "HIGH"] }
+            ]
+          },
+          insight: {
+            $concat: ["$category", " problem cluster detected in ", "$_id.area", ". Immediate action recommended."]
+          }
+        }
+      },
+      { $sort: { complaints: -1 } },
+      { $limit: 10 }
+    ]);
+
+    res.json(clusters);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

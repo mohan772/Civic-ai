@@ -7,13 +7,10 @@ const ComplaintForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    location: '', 
     description: '',
-    priority: 'Medium',
     image: null
   });
 
-  // Step 6: Store updated coordinates in form state
   const [pickedLocation, setPickedLocation] = useState({
     latitude: 12.9716,
     longitude: 77.5946
@@ -52,13 +49,10 @@ const ComplaintForm = () => {
     setStatus({ type: 'info', message: 'Submitting complaint...' });
 
     try {
-      // Step 7: Update complaint submission with selected coordinates
       const data = new FormData();
-      data.append('name', formData.name);
+      data.append('name', formData.name); 
       data.append('phone', formData.phone);
-      data.append('locationText', formData.location);
       data.append('description', formData.description);
-      data.append('priority', formData.priority);
       data.append('latitude', pickedLocation.latitude);
       data.append('longitude', pickedLocation.longitude);
       
@@ -70,9 +64,8 @@ const ComplaintForm = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      setStatus({ type: 'success', message: 'Complaint submitted with precise location!' });
-      // Reset form but keep location picker at the last spot or reset it too?
-      setFormData({ name: '', phone: '', location: '', description: '', priority: 'Medium', image: null });
+      setStatus({ type: 'success', message: 'Complaint submitted successfully! AI is analyzing your report.' });
+      setFormData({ name: '', phone: '', description: '', image: null });
       
     } catch (error) {
       console.error("Submission error:", error);
@@ -86,52 +79,88 @@ const ComplaintForm = () => {
   return (
     <div className="form-container">
       <form className="complaint-form-v2" onSubmit={handleSubmit}>
+        <div className="form-badge">AI-Powered Rapid Reporting</div>
         <h2>Submit a Civic Complaint</h2>
+        <p className="form-subtitle">Automatic priority detection & geo-routing enabled.</p>
         
         {status.message && <div className={`alert ${status.type}`}>{status.message}</div>}
 
         <div className="form-group">
           <label>Full Name</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+          <input 
+            type="text" 
+            name="name" 
+            placeholder="Enter your name" 
+            value={formData.name} 
+            onChange={handleChange} 
+            required 
+          />
         </div>
 
         <div className="form-group">
           <label>Phone Number</label>
-          <input type="text" name="phone" placeholder="Enter phone number" value={formData.phone} onChange={handleChange} required />
+          <input 
+            type="text" 
+            name="phone" 
+            placeholder="Enter 10-digit phone number" 
+            value={formData.phone} 
+            onChange={handleChange} 
+            required 
+          />
         </div>
 
         <div className="form-group">
-          <label>Landmark / Street (Optional)</label>
-          <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Near Metro Station" />
-        </div>
-
-        {/* Step 6 & 9: Integrate LocationPicker */}
-        <LocationPicker onLocationChange={handleLocationChange} />
-
-        <div className="form-group">
-          <label>Issue Priority</label>
-          <select name="priority" value={formData.priority} onChange={handleChange}>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
+          <label>Select Precise Location</label>
+          <p className="field-hint">Drag the marker to the exact spot of the issue.</p>
+          <LocationPicker onLocationChange={handleLocationChange} />
         </div>
 
         <div className="form-group">
-          <label>Description</label>
-          <textarea name="description" value={formData.description} onChange={handleChange} rows="5" required></textarea>
+          <label>Describe the Issue</label>
+          <textarea 
+            name="description" 
+            placeholder="Describe the problem... AI will automatically categorize this."
+            value={formData.description} 
+            onChange={handleChange} 
+            rows="5" 
+            required
+          ></textarea>
         </div>
 
         <div className="form-group">
-          <label>Upload Photo</label>
+          <label>Evidence (Photo)</label>
           <input type="file" accept="image/*" onChange={handleImageChange} className="file-input" />
         </div>
 
         <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Processing...' : 'Submit Complaint'}
+          {loading ? 'AI Processing...' : 'Submit Report'}
         </button>
       </form>
+
+      <style>{`
+        .form-badge {
+          display: inline-block;
+          background: #EBF8FF;
+          color: #2B6CB0;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-weight: 800;
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          margin-bottom: 15px;
+        }
+        .form-subtitle {
+          color: #718096;
+          font-size: 0.9rem;
+          margin-bottom: 30px;
+        }
+        .field-hint {
+          font-size: 0.75rem;
+          color: #a0aec0;
+          margin-bottom: 8px;
+          font-weight: 600;
+        }
+      `}</style>
     </div>
   );
 };

@@ -17,6 +17,7 @@ const allocationRoutes = require('./routes/allocation');
 const ticketRoutes = require('./routes/tickets');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
+const leaderboardRoutes = require('./routes/leaderboard');
 
 // Import Middleware
 const { verifyToken } = require('./middleware/authMiddleware');
@@ -38,17 +39,19 @@ app.use('/uploads', express.static(uploadsDir));
 
 // 2. ROUTE REGISTRATION
 
-// Authentication (Public)
+// Public Routes
 app.use('/api/auth', authRoutes);
-console.log("✔ Auth routes loaded");
+app.use('/api/leaderboard', leaderboardRoutes);
+console.log("✔ Public routes loaded (Auth, Leaderboard)");
 
 // Complaints Route Logic
-// Allow POST (submission) to be public, protect everything else (GET, PATCH, etc.)
+// Allow POST (submission) to be public
+// Allow GET (tracking) to be public for everyone to see all complaints
 app.use('/api/complaints', (req, res, next) => {
-  if (req.method === 'POST') {
-    return next(); // Skip verification for public submission
+  if (req.method === 'POST' || req.method === 'GET') {
+    return next(); // Public access for both submitting and viewing
   }
-  return verifyToken(req, res, next); // Apply verification for all other methods
+  return verifyToken(req, res, next); 
 }, complaintRoutes);
 console.log("✔ Complaints routes loaded (POST public, others protected)");
 

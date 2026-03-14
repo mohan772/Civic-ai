@@ -24,15 +24,20 @@ const deptMapping = {
   'Public Services': 'Municipal Services'
 };
 
-// Helper to update trust score and notify citizen
+// Helper to update trust score, points and notify citizen
 const updateTrustAndNotify = async (phone, delta, message, complaintId) => {
   try {
     const citizen = await Citizen.findOne({ phone });
     if (citizen) {
+      // Update Trust Score
       citizen.trustScore = Math.min(100, Math.max(0, citizen.trustScore + delta));
+      
+      // Update Points (Clamped to 0 minimum)
+      citizen.points = Math.max(0, citizen.points + delta);
+      
       if (delta > 0) citizen.validComplaints += 1;
       if (delta < 0) citizen.fakeComplaints += 1;
-      await citizen.save();
+      await citizen.save(); // Level is updated automatically via pre-save hook
     }
     
     await Notification.create({
@@ -223,11 +228,13 @@ router.patch('/:id/status', async (req, res) => {
 // GET: All complaints
 router.get('/', async (req, res) => {
   try {
-    const { category, status, department } = req.query;
+    const { category, status, department, phone } = req.query;
     const filter = {};
     if (category) filter.category = category;
     if (status) filter.status = status;
     if (department) filter.department = department;
+    if (phone) filter.phone = phone;
+    
     const data = await Complaint.find(filter).sort({ createdAt: -1 });
     res.json(data);
   } catch (err) {

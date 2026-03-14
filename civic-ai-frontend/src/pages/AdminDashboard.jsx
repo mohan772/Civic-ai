@@ -9,6 +9,7 @@ import DepartmentPerformance from '../components/DepartmentPerformance';
 import CivicHotspots from '../components/CivicHotspots';
 import LiveCityMetrics from '../components/LiveCityMetrics';
 import EmergencyAlerts from '../components/EmergencyAlerts';
+import IncidentClusters from '../components/IncidentClusters';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -28,9 +29,12 @@ const AdminDashboard = () => {
   }, [activeTab, viewMode]);
 
   useEffect(() => {
-    const interval = setInterval(fetchAllComplaints, 30000); 
+    const interval = setInterval(() => {
+      fetchComplaints();
+      fetchAllComplaints();
+    }, 20000); 
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab, viewMode]);
 
   const fetchComplaints = async () => {
     setLoading(true);
@@ -96,6 +100,7 @@ const AdminDashboard = () => {
           <LiveCityMetrics />
           <EmergencyAlerts />
           <CivicHotspots />
+          <IncidentClusters />
         </aside>
 
         {/* Right Column: Analytics & Queue */}

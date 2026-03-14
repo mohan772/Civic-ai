@@ -32,6 +32,10 @@ export const getAnalyticsLiveMetrics = async () => {
   return await axios.get('/analytics/live-metrics');
 };
 
+export const getIncidentClusters = async () => {
+  return await axios.get('/analytics/incident-clusters');
+};
+
 // Ticket / Token Management
 export const getTickets = async () => {
   return await axios.get('/tickets');

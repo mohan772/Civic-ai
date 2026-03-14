@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Leaderboard from '../components/Leaderboard';
 
 const Home = () => {
   return (
@@ -54,6 +55,51 @@ const Home = () => {
           <div className="feature-icon green-bg">🛡️</div>
           <h3>Trust System</h3>
           <p>A transparent trust-score mechanism prioritizes genuine reports and rewards active citizenship.</p>
+        </div>
+      </section>
+
+      <section className="engagement-section">
+        <div className="engagement-grid">
+          <div className="engagement-info">
+            <div className="badge secondary">Gamification & Rewards</div>
+            <h2>Be a <span className="text-gradient">City Champion</span></h2>
+            <p>Our Reward Points System encourages responsible civic participation. Gain points for meaningful contributions and level up your civic profile.</p>
+            
+            <div className="points-rules">
+              <div className="rule-item">
+                <span className="rule-val positive">+5</span>
+                <span className="rule-label">Valid Complaint</span>
+              </div>
+              <div className="rule-item">
+                <span className="rule-val positive">+10</span>
+                <span className="rule-label">Resolved Issue</span>
+              </div>
+              <div className="rule-item">
+                <span className="rule-val negative">-20</span>
+                <span className="rule-label">Fake Complaint</span>
+              </div>
+              <div className="rule-item">
+                <span className="rule-val negative">-5</span>
+                <span className="rule-label">Duplicate Report</span>
+              </div>
+            </div>
+
+            <div className="levels-track">
+              <h4>Civic Progression Levels</h4>
+              <div className="level-steps">
+                <span>Reporter</span>
+                <span>Helper</span>
+                <span>Guardian</span>
+                <span>Champion</span>
+              </div>
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+          <div className="engagement-leaderboard">
+            <Leaderboard />
+          </div>
         </div>
       </section>
 
@@ -228,6 +274,101 @@ const Home = () => {
         .stat-item strong { display: block; font-size: 2.5rem; margin-bottom: 4px; }
         .stat-item span { color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 800; font-size: 0.8rem; }
         .stat-divider { width: 1px; height: 50px; background: rgba(255,255,255,0.1); }
+
+        .engagement-section {
+          background: #f8fafc;
+          padding: 80px 40px;
+          border-radius: 30px;
+        }
+
+        .engagement-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 60px;
+          align-items: center;
+        }
+
+        .badge.secondary {
+          background: #FEF3C7;
+          color: #92400E;
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 12px;
+          font-weight: 800;
+          font-size: 0.75rem;
+          margin-bottom: 20px;
+        }
+
+        .engagement-info h2 { font-size: 3rem; margin-bottom: 24px; }
+        .engagement-info p { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.6; }
+
+        .points-rules {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+
+        .rule-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: white;
+          padding: 15px;
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+
+        .rule-val {
+          font-weight: 800;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.9rem;
+        }
+
+        .rule-val.positive { background: #DCFCE7; color: #166534; }
+        .rule-val.negative { background: #FEE2E2; color: #991B1B; }
+        .rule-label { font-weight: 700; color: #4A5568; font-size: 0.9rem; }
+
+        .levels-track {
+          background: white;
+          padding: 25px;
+          border-radius: 20px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .levels-track h4 { margin-top: 0; margin-bottom: 20px; color: #2D3748; }
+
+        .level-steps {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+
+        .level-steps span {
+          font-size: 0.75rem;
+          font-weight: 800;
+          color: #718096;
+          text-transform: uppercase;
+        }
+
+        .progress-bar-bg {
+          height: 10px;
+          background: #EDF2F7;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+
+        .progress-bar-fill {
+          height: 100%;
+          width: 40%;
+          background: linear-gradient(90deg, var(--ashoka-blue), #63b3ed);
+          border-radius: 5px;
+        }
+
+        @media (max-width: 992px) {
+          .engagement-grid { grid-template-columns: 1fr; }
+        }
 
         @media (max-width: 992px) {
           .hero-section { grid-template-columns: 1fr; }

@@ -11,7 +11,7 @@ const UserDashboard = () => {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/complaints');
+        const response = await axios.get("https://civic-ai-backend.onrender.com/api/complaints");
         setComplaints(response.data);
       } catch (err) {
         console.error('Error fetching complaints:', err);

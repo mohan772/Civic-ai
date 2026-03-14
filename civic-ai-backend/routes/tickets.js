@@ -60,14 +60,33 @@ router.patch('/:id/resolve', upload.single('resolutionPhoto'), async (req, res) 
   }
 });
 
-// PATCH: Close Ticket (Admin)
+// PATCH: Assign Ticket
+router.patch('/:id/assign', async (req, res) => {
+  try {
+    const { assignedAuthority } = req.body;
+    const ticket = await Ticket.findByIdAndUpdate(
+      req.params.id, 
+      { assignedAuthority, status: 'In Progress' }, 
+      { new: true }
+    );
+    res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH: Close Ticket (Manual stop/closing)
 router.patch('/:id/close', async (req, res) => {
   try {
-    const ticket = await Ticket.findByIdAndUpdate(req.params.id, { status: 'Closed' }, { new: true });
-    
-    // Update linked complaint status to Resolved
+    const ticket = await Ticket.findByIdAndUpdate(
+      req.params.id, 
+      { status: 'Closed' }, 
+      { new: true }
+    );
+
+    // Update linked complaint
     await Complaint.findByIdAndUpdate(ticket.complaintId, { status: 'Resolved' });
-    
+
     res.json(ticket);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAnalyticsLiveMetrics } from '../services/api';
 
 const LiveCityMetrics = () => {
   const [metrics, setMetrics] = useState(null);
@@ -7,7 +7,7 @@ const LiveCityMetrics = () => {
 
   const fetchMetrics = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/analytics/live-metrics');
+      const res = await getAnalyticsLiveMetrics();
       setMetrics(res.data);
       setLoading(false);
     } catch (err) {

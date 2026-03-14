@@ -3,107 +3,238 @@ import { Link } from 'react-router-dom';
 
 const Home = () => {
   return (
-    <div className="modern-home">
-      {/* Hero Section */}
-      <header className="hero-section">
+    <div className="home-container">
+      <section className="hero-section">
         <div className="hero-content">
-          <h1>AI-Powered Civic Complaint Intelligence</h1>
-          <p>Transforming urban governance with transparency, AI classification, and real-time resolution tracking.</p>
-          <div className="hero-btns">
-            <Link to="/submit" className="cta-primary">Report an Issue</Link>
-            <Link to="/status" className="cta-secondary">Track Progress</Link>
+          <div className="hero-badge">Next-Gen Urban Governance</div>
+          <h1>Transforming Our City with <span className="text-gradient">AI Intelligence</span></h1>
+          <p className="hero-lead">Empowering citizens to build a smarter, safer, and cleaner Bengaluru through automated AI classification and real-time civic analytics.</p>
+          <div className="hero-cta">
+            <Link to="/submit" className="primary-btn">Report a Civic Issue</Link>
+            <Link to="/status" className="secondary-btn">Track Existing Reports</Link>
           </div>
         </div>
-      </header>
+        <div className="hero-visual">
+          <div className="visual-card main-stats">
+            <span className="visual-icon">📊</span>
+            <div className="visual-text">
+              <strong>94%</strong>
+              <span>Resolution Rate</span>
+            </div>
+          </div>
+          <div className="visual-card ai-tag">
+            <span className="visual-icon">🤖</span>
+            <div className="visual-text">
+              <strong>AI Classification</strong>
+              <span>Automated Routing</span>
+            </div>
+          </div>
+          <div className="visual-card city-pulse">
+            <span className="visual-icon">📈</span>
+            <div className="visual-text">
+              <strong>City Pulse</strong>
+              <span>Live Health Score: 88</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Features Section */}
       <section className="features-grid">
-        <div className="feature-card">
-          <span className="icon">🤖</span>
-          <h3>AI Classification</h3>
-          <p>Gemini AI automatically categorizes and routes complaints to the correct department within seconds.</p>
+        <div className="feature-card card">
+          <div className="feature-icon saffron-bg">⚡</div>
+          <h3>Rapid Response</h3>
+          <p>AI-driven routing ensures your complaints reach the right department in milliseconds, not days.</p>
         </div>
-        <div className="feature-card">
-          <span className="icon">📊</span>
-          <h3>Resource Allocation</h3>
-          <p>Smart engine predicts and suggests resource deployment based on complaint density and urgency.</p>
+        <div className="feature-card card">
+          <div className="feature-icon blue-bg">📍</div>
+          <h3>Geospatial Intelligence</h3>
+          <p>Hyper-local tracking and duplicate detection prevent redundant tickets and optimize resources.</p>
         </div>
-        <div className="feature-card">
-          <span className="icon">🛡️</span>
-          <h3>Fraud Detection</h3>
-          <p>Built-in AI filters out fake reports and spam, ensuring focus on genuine community issues.</p>
-        </div>
-        <div className="feature-card">
-          <span className="icon">✅</span>
-          <h3>Transparent Tickets</h3>
-          <p>Every complaint follows a strict verification and ticketing lifecycle with photo proof of resolution.</p>
+        <div className="feature-card card">
+          <div className="feature-icon green-bg">🛡️</div>
+          <h3>Trust System</h3>
+          <p>A transparent trust-score mechanism prioritizes genuine reports and rewards active citizenship.</p>
         </div>
       </section>
 
-      {/* How it Works Section */}
-      <section className="how-it-works">
-        <h2>Our Digital Workflow</h2>
-        <div className="steps-container">
-          <div className="step">
-            <div className="step-num">1</div>
-            <h4>Report</h4>
-            <p>Citizen submits a report with location and photo.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">2</div>
-            <h4>Analyze</h4>
-            <p>AI classifies category, priority, and responsible department.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">3</div>
-            <h4>Resolve</h4>
-            <p>Department receives a ticket and uploads proof of work.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">4</div>
-            <h4>Verify</h4>
-            <p>Admin closes the ticket after quality verification.</p>
-          </div>
+      <section className="stats-strip">
+        <div className="stat-item">
+          <strong>12k+</strong>
+          <span>Complaints Resolved</span>
+        </div>
+        <div className="stat-divider"></div>
+        <div className="stat-item">
+          <strong>45m</strong>
+          <span>Avg. Response Time</span>
+        </div>
+        <div className="stat-divider"></div>
+        <div className="stat-item">
+          <strong>100%</strong>
+          <span>Transparency</span>
         </div>
       </section>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .modern-home { font-family: 'Inter', sans-serif; }
-        
+      <style>{`
+        .home-container {
+          display: flex;
+          flex-direction: column;
+          gap: 80px;
+          padding-bottom: 60px;
+        }
+
         .hero-section {
-          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+          display: grid;
+          grid-template-columns: 1.2fr 0.8fr;
+          align-items: center;
+          gap: 40px;
+          padding: 60px 0;
+        }
+
+        .hero-badge {
+          display: inline-block;
+          background: #EBF8FF;
+          color: #2B6CB0;
+          padding: 6px 16px;
+          border-radius: 20px;
+          font-weight: 800;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          margin-bottom: 24px;
+        }
+
+        .hero-content h1 {
+          font-size: 4rem;
+          line-height: 1.1;
+          margin-bottom: 24px;
+        }
+
+        .text-gradient {
+          background: linear-gradient(90deg, var(--ashoka-blue), var(--saffron));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-lead {
+          font-size: 1.25rem;
+          color: var(--text-secondary);
+          margin-bottom: 40px;
+          max-width: 600px;
+        }
+
+        .hero-cta {
+          display: flex;
+          gap: 20px;
+        }
+
+        .primary-btn {
+          background: var(--ashoka-blue);
           color: white;
-          padding: 100px 20px;
+          text-decoration: none;
+          padding: 16px 32px;
+          border-radius: 12px;
+          font-weight: 800;
+          transition: var(--transition);
+        }
+
+        .secondary-btn {
+          background: white;
+          color: var(--ashoka-blue);
+          text-decoration: none;
+          padding: 16px 32px;
+          border-radius: 12px;
+          font-weight: 800;
+          border: 2px solid var(--ashoka-blue);
+          transition: var(--transition);
+        }
+
+        .hero-visual {
+          position: relative;
+          height: 400px;
+        }
+
+        .visual-card {
+          position: absolute;
+          background: white;
+          padding: 20px;
+          border-radius: 20px;
+          box-shadow: var(--shadow-lg);
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          width: 240px;
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .main-stats { top: 0; right: 0; }
+        .ai-tag { top: 150px; left: 0; animation-delay: -2s; }
+        .city-pulse { bottom: 0; right: 50px; animation-delay: -4s; }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+
+        .visual-icon {
+          width: 48px;
+          height: 48px;
+          background: var(--bg-main);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+        }
+
+        .visual-text strong { display: block; font-size: 1.25rem; }
+        .visual-text span { font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; }
+
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 30px;
+        }
+
+        .feature-card {
           text-align: center;
-          border-radius: 0 0 50px 50px;
+          padding: 40px;
         }
-        .hero-content h1 { font-size: 3.5rem; margin-bottom: 20px; font-weight: 800; }
-        .hero-content p { font-size: 1.2rem; max-width: 800px; margin: 0 auto 40px; opacity: 0.9; }
-        
-        .hero-btns { display: flex; justify-content: center; gap: 20px; }
-        .cta-primary { background: #646cff; color: white; padding: 15px 35px; border-radius: 30px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 15px rgba(100,108,255,0.4); }
-        .cta-secondary { background: rgba(255,255,255,0.1); color: white; padding: 15px 35px; border-radius: 30px; text-decoration: none; font-weight: 700; backdrop-filter: blur(10px); }
-        
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; padding: 80px 40px; }
-        .feature-card { background: #f9f9f9; padding: 40px; border-radius: 20px; text-align: center; transition: transform 0.3s; }
-        .feature-card:hover { transform: translateY(-10px); }
-        .feature-card .icon { font-size: 40px; display: block; margin-bottom: 20px; }
-        .feature-card h3 { margin-bottom: 15px; color: #2c3e50; }
-        .feature-card p { color: #666; font-size: 14px; line-height: 1.6; }
-        
-        .how-it-works { background: #fff; padding: 100px 40px; text-align: center; }
-        .how-it-works h2 { margin-bottom: 60px; font-size: 2.5rem; }
-        .steps-container { display: flex; justify-content: space-between; gap: 30px; max-width: 1200px; margin: 0 auto; }
-        .step { flex: 1; }
-        .step-num { width: 50px; height: 50px; background: #646cff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-weight: 800; font-size: 20px; }
-        .step h4 { margin-bottom: 10px; color: #2c3e50; }
-        .step p { font-size: 14px; color: #777; }
-        
-        @media (max-width: 768px) {
-          .hero-content h1 { font-size: 2.2rem; }
-          .steps-container { flex-direction: column; }
+
+        .feature-icon {
+          width: 60px;
+          height: 60px;
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          margin: 0 auto 24px;
         }
-      `}} />
+
+        .saffron-bg { background: #FFF5F0; color: #FF4D00; }
+        .blue-bg { background: #EBF8FF; color: #2B6CB0; }
+        .green-bg { background: #F0FFF4; color: #2F855A; }
+
+        .stats-strip {
+          background: var(--ashoka-blue);
+          border-radius: 24px;
+          padding: 40px;
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          color: white;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-item strong { display: block; font-size: 2.5rem; margin-bottom: 4px; }
+        .stat-item span { color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 800; font-size: 0.8rem; }
+        .stat-divider { width: 1px; height: 50px; background: rgba(255,255,255,0.1); }
+
+        @media (max-width: 992px) {
+          .hero-section { grid-template-columns: 1fr; }
+          .hero-visual { display: none; }
+          .features-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </div>
   );
 };

@@ -45,7 +45,8 @@ const updateTrustAndNotify = async (phone, delta, message, complaintId) => {
   }
 };
 
-// POST: Create Complaint (Requirement 2)
+// 1. POST: Create Complaint
+// This route ONLY saves the complaint and does NOT create any ticket.
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, phone, description, priority: userPriority } = req.body;
@@ -80,7 +81,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       readableAddress = req.body.locationText || "Address Fetch Failed";
     }
 
-    // AI Classification (Requirement 2)
+    // AI Classification
     const keywordCategory = detectCategoryByKeywords(description);
     const aiResult = await classifyComplaint(description);
     
@@ -111,7 +112,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       name, phone, description, category, 
       priority: finalPriority, 
       department,
-      status: 'Pending', // Requirement 2: Status remains Pending
+      status: 'Pending', 
       report_count: 1,
       image: req.file ? `/uploads/${req.file.filename}` : null,
       location,
@@ -126,38 +127,65 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// PATCH: Update Complaint Status (Requirement 4 & 5)
+// 2. PATCH: Accept Complaint (Ticket generation ONLY here)
+router.patch('/:id/accept', async (req, res) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+
+    // Protection: Only allow processing if Pending
+    if (complaint.status !== 'Pending') {
+      return res.status(400).json({ message: "Complaint already processed" });
+    }
+
+    // 3. Prevent duplicate ticket generation
+    let ticket = await Ticket.findOne({ complaintId: complaint._id });
+    
+    if (!ticket) {
+      // Create a new Ticket document automatically linked to the complaint's department
+      // and automatically assigned to the department's lead officer
+      ticket = new Ticket({
+        ticketId: "TCK-" + Date.now(),
+        complaintId: complaint._id,
+        department: complaint.department || "Municipal Services",
+        assignedAuthority: `Lead Officer - ${complaint.department || "Municipal"}`, // Automatic Assignment
+        status: "In Progress" // Move directly to In Progress since it's assigned
+      });
+      await ticket.save();
+      console.log(`✔ Automated Ticket Created & Assigned: ${ticket.ticketId}`);
+    }
+
+    // 4. Update complaint fields after acceptance
+    complaint.status = 'Accepted';
+    complaint.ticketId = ticket.ticketId;
+    complaint.ticketStatus = 'Open';
+    await complaint.save();
+
+    await updateTrustAndNotify(
+      complaint.phone, 
+      5, 
+      `Your complaint has been accepted. Token ID: ${ticket.ticketId}`, 
+      complaint._id
+    );
+
+    res.json({ message: "Complaint accepted and ticket generated", ticket, complaint });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. PATCH: Update Complaint Status (Rejected/Resolved)
+// Rejections happen here and do NOT generate tickets.
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status, reason } = req.body;
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ message: "Complaint not found" });
 
-    if (status === 'Accepted') {
-      // Requirement 4: Accept Complaint Logic
-      complaint.status = 'Accepted';
-      complaint.ticketId = "TCK-" + Date.now();
-      complaint.ticketStatus = 'Open';
-      
-      const ticket = new Ticket({
-        ticketId: complaint.ticketId,
-        complaintId: complaint._id,
-        department: complaint.department,
-        status: 'Pending'
-      });
-      
-      await ticket.save();
-      await complaint.save();
-      
-      await updateTrustAndNotify(
-        complaint.phone, 
-        5, 
-        `Your complaint has been accepted and assigned to the ${complaint.department} department. Ticket: ${complaint.ticketId}`, 
-        complaint._id
-      );
-    } 
-    else if (status === 'Rejected') {
-      // Requirement 5: Cancel Complaint Logic
+    if (status === 'Rejected') {
+      if (complaint.status !== 'Pending') {
+        return res.status(400).json({ message: "Complaint already processed" });
+      }
       complaint.status = 'Rejected';
       complaint.rejectionReason = reason;
       await complaint.save();

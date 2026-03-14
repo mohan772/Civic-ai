@@ -1,137 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const DashboardStats = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/stats');
-      setData(response.data);
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/stats');
+        setStats(res.data);
+      } catch (err) {}
+    };
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="loading-stats">Syncing Analytics...</div>;
-  if (!data) return null;
+  if (!stats) return null;
+
+  const statItems = [
+    { label: 'Total Reports', value: stats.total, color: 'var(--ashoka-blue)', icon: '📋' },
+    { label: 'Under Review', value: stats.pending, color: 'var(--saffron)', icon: '🔍' },
+    { label: 'Successfully Fixed', value: stats.resolved, color: 'var(--green)', icon: '🛠️' },
+    { label: 'Critical Priority', value: stats.critical, color: 'var(--danger)', icon: '🔥' }
+  ];
 
   return (
-    <div className="gov-stats-container">
-      <div className="stats-grid">
-        <div className="stat-card-gov">
-          <div className="stat-icon total">📊</div>
-          <div className="stat-info">
-            <span className="stat-val">{data.total}</span>
-            <span className="stat-lbl">Total Registered Cases</span>
+    <div className="modern-stats-grid">
+      {statItems.map((item, i) => (
+        <div key={i} className="stat-card-modern card">
+          <div className="stat-icon-wrapper" style={{ backgroundColor: `${item.color}15`, color: item.color }}>
+            {item.icon}
+          </div>
+          <div className="stat-details">
+            <span className="stat-value-big">{item.value}</span>
+            <span className="stat-label-small">{item.label}</span>
+          </div>
+          <div className="stat-progress">
+            <div className="progress-bg">
+              <div className="progress-fill" style={{ width: '70%', backgroundColor: item.color }}></div>
+            </div>
           </div>
         </div>
-        
-        <div className="stat-card-gov">
-          <div className="stat-icon pending">⏳</div>
-          <div className="stat-info">
-            <span className="stat-val">{data.pending || (data.total - data.resolved - data.rejected) || 0}</span>
-            <span className="stat-lbl">Pending Moderation</span>
-          </div>
-        </div>
-
-        <div className="stat-card-gov">
-          <div className="stat-icon resolved">✅</div>
-          <div className="stat-info">
-            <span className="stat-val">{data.resolved}</span>
-            <span className="stat-lbl">Resolved & Closed</span>
-          </div>
-        </div>
-
-        <div className="stat-card-gov">
-          <div className="stat-icon rejected">❌</div>
-          <div className="stat-info">
-            <span className="stat-val">{data.rejected || 0}</span>
-            <span className="stat-lbl">Rejected / Invalid</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="health-section-gov">
-        <div className="health-card">
-          <h4>City Civic Health Index</h4>
-          <div className="health-bar-container">
-            <div className="health-bar" style={{ width: `${data.civicHealthScore}%`, backgroundColor: data.color }}></div>
-          </div>
-          <div className="health-meta">
-            <span className="health-score" style={{ color: data.color }}>{data.civicHealthScore}/100</span>
-            <span className="health-trend">
-              {data.trend === 'up' ? '📈 Improving' : '📉 Worsening'}
-            </span>
-          </div>
-        </div>
-      </div>
+      ))}
 
       <style>{`
-        .gov-stats-container { margin-bottom: 40px; }
-        
-        .stats-grid {
+        .modern-stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 20px;
+          gap: 24px;
           margin-bottom: 30px;
         }
 
-        .stat-card-gov {
-          background-color: var(--light-grey);
-          padding: 25px;
-          border-radius: 12px;
+        .stat-card-modern {
+          padding: 24px !important;
           display: flex;
-          align-items: center;
-          gap: 20px;
-          border: 1px solid #e0e0e0;
-          transition: transform 0.2s;
+          flex-direction: column;
+          gap: 16px;
+          position: relative;
+          overflow: hidden;
         }
-        .stat-card-gov:hover { transform: translateY(-5px); border-color: var(--saffron); }
 
-        .stat-icon {
-          font-size: 2rem;
-          background: white;
-          width: 60px;
-          height: 60px;
+        .stat-icon-wrapper {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 50%;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          font-size: 1.5rem;
         }
 
-        .stat-info { display: flex; flex-direction: column; }
-        .stat-val { font-size: 1.8rem; font-weight: 900; color: var(--ashoka-blue); line-height: 1.2; }
-        .stat-lbl { font-size: 0.75rem; color: #666; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-
-        .health-section-gov {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-          border: 1px solid #eee;
+        .stat-details {
+          display: flex;
+          flex-direction: column;
         }
-        .health-card h4 { margin: 0 0 15px 0; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-        .health-bar-container { height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
-        .health-bar { height: 100%; transition: width 1s ease-in-out; }
-        .health-meta { display: flex; justify-content: space-between; align-items: center; }
-        .health-score { font-size: 1.4rem; font-weight: 800; }
-        .health-trend { font-size: 0.9rem; font-weight: 600; color: #666; }
 
-        .loading-stats { padding: 30px; text-align: center; color: var(--ashoka-blue); font-weight: 700; }
+        .stat-value-big {
+          font-size: 2rem;
+          font-weight: 900;
+          color: var(--text-primary);
+          line-height: 1;
+        }
 
-        @media (max-width: 768px) {
-          .stats-grid { grid-template-columns: 1fr 1fr; }
+        .stat-label-small {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 4px;
+        }
+
+        .stat-progress {
+          margin-top: 8px;
+        }
+
+        .progress-bg {
+          height: 4px;
+          background: var(--bg-main);
+          border-radius: 2px;
+          width: 100%;
+        }
+
+        .progress-fill {
+          height: 100%;
+          border-radius: 2px;
+          opacity: 0.6;
         }
       `}</style>
     </div>

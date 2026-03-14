@@ -35,6 +35,10 @@ const HeatLayer = ({ complaints }) => {
   useEffect(() => {
     if (!map || !complaints || complaints.length === 0) return;
 
+    // Aggregate intensity: Use report_count to determine the "heat"
+    // Normalize intensity so that higher counts are visibly hotter
+    const maxReports = Math.max(...complaints.map(c => c.report_count || 1), 1);
+
     const filteredPoints = complaints
       .filter(c => 
         c.location && 
@@ -44,22 +48,28 @@ const HeatLayer = ({ complaints }) => {
         c.location.coordinates[0] >= 77.3792 && 
         c.location.coordinates[0] <= 77.8827
       )
-      .map(c => [
-        c.location.coordinates[1],
-        c.location.coordinates[0],
-        c.report_count || 1
-      ]);
+      .map(c => {
+        // Intensity is relative to the highest count in the current dataset
+        // This ensures the map is always reactive to the "hottest" spot
+        const intensity = (c.report_count || 1) / maxReports;
+        return [
+          c.location.coordinates[1],
+          c.location.coordinates[0],
+          intensity * 1.5 // Multiplier to boost visibility of recurrent issues
+        ];
+      });
 
     const heatLayer = L.heatLayer(filteredPoints, {
-      radius: 30,
-      blur: 20,
-      maxZoom: 17,
+      radius: 35,
+      blur: 25,
+      maxZoom: 15,
+      max: 1.0,
       gradient: {
-        0.2: "blue",
-        0.4: "lime",
-        0.6: "yellow",
-        0.8: "orange",
-        1.0: "red"
+        0.1: "#3b82f6", // Info Blue
+        0.3: "#10b981", // Success Green
+        0.5: "#f59e0b", // Warning Saffron
+        0.7: "#f97316", // Orange
+        1.0: "#ef4444"  // Danger Red
       }
     }).addTo(map);
 

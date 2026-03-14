@@ -5,46 +5,85 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Import Models
+const Complaint = require('./models/Complaint');
+const Admin = require('./models/Admin');
+
+// Import Routes
+const authRoutes = require('./routes/auth');
+const complaintRoutes = require('./routes/complaints');
+const statsRoutes = require('./routes/stats');
+const allocationRoutes = require('./routes/allocation');
+const ticketRoutes = require('./routes/tickets');
+const notificationRoutes = require('./routes/notifications');
+const analyticsRoutes = require('./routes/analytics');
+
+// Import Middleware
+const { verifyToken } = require('./middleware/authMiddleware');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Essential Middleware
+// 1. GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Ensure uploads folder exists and serve static files
+// Static Files Setup
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)){
     fs.mkdirSync(uploadsDir);
 }
 app.use('/uploads', express.static(uploadsDir));
 
-// Route Registration
-const complaintRoutes = require('./routes/complaints');
-const statsRoutes = require('./routes/stats');
-const allocationRoutes = require('./routes/allocation');
-const ticketRoutes = require('./routes/tickets');
-const notificationRoutes = require('./routes/notifications'); // Requirement 7
-const analyticsRoutes = require('./routes/analytics');
+// 2. ROUTE REGISTRATION
 
-app.use('/api/complaints', complaintRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/resource-allocation', allocationRoutes);
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/notifications', notificationRoutes); // Requirement 7
-app.use('/api/analytics', analyticsRoutes);
+// Authentication (Public)
+app.use('/api/auth', authRoutes);
+console.log("✔ Auth routes loaded");
 
-// Database Connection and Data Migration
+// Complaints Route Logic
+// Allow POST (submission) to be public, protect everything else (GET, PATCH, etc.)
+app.use('/api/complaints', (req, res, next) => {
+  if (req.method === 'POST') {
+    return next(); // Skip verification for public submission
+  }
+  return verifyToken(req, res, next); // Apply verification for all other methods
+}, complaintRoutes);
+console.log("✔ Complaints routes loaded (POST public, others protected)");
+
+// Other Protected Routes (Require JWT)
+app.use('/api/stats', verifyToken, statsRoutes);
+app.use('/api/resource-allocation', verifyToken, allocationRoutes);
+app.use('/api/tickets', verifyToken, ticketRoutes);
+app.use('/api/notifications', verifyToken, notificationRoutes);
+app.use('/api/analytics', verifyToken, analyticsRoutes);
+console.log("✔ Protected Administrative routes loaded");
+
+// 3. DATABASE & SERVER START
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civic_ai';
-const Complaint = require('./models/Complaint');
 
 mongoose.connect(MONGODB_URI)
   .then(async () => {
-    console.log('Successfully connected to MongoDB');
+    console.log('✔ Successfully connected to MongoDB');
     
+    // Default Admin Creation
     try {
-      // 1. DATA MIGRATION: Fix legacy documents missing 'phone' or having string 'location'
+      const adminCount = await Admin.countDocuments();
+      if (adminCount === 0) {
+        const defaultAdmin = new Admin({
+          email: 'admin@city.gov',
+          password: 'AdminPassword123'
+        });
+        await defaultAdmin.save();
+        console.log('ℹ Default admin created: admin@city.gov / AdminPassword123');
+      }
+    } catch (adminErr) {
+      console.error('✘ Error creating default admin:', adminErr.message);
+    }
+    
+    // Data Migration & Indexing
+    try {
       const legacyDocs = await Complaint.find({ 
         $or: [
           { location: { $type: "string" } },
@@ -53,35 +92,28 @@ mongoose.connect(MONGODB_URI)
       });
       
       if (legacyDocs.length > 0) {
-        console.log(`Found ${legacyDocs.length} legacy documents. Migrating...`);
-        
         for (let doc of legacyDocs) {
           const update = {};
           if (typeof doc.location === 'string') {
             update.address = doc.location;
             update.location = { type: "Point", coordinates: [77.5946, 12.9716] };
           }
-          if (!doc.phone) {
-            update.phone = "0000000000"; // Fallback for legacy data
-          }
+          if (!doc.phone) update.phone = "0000000000";
           
           await mongoose.connection.collection('complaints').updateOne(
             { _id: doc._id },
             { $set: update }
           );
         }
-        console.log('Migration complete.');
       }
-
       await Complaint.createIndexes();
-      console.log('Geospatial indexes verified and active');
     } catch (err) {
-      console.error('Initialization error (Migration/Indexing):', err.message);
+      console.error('✘ Initialization error:', err.message);
     }
 
-    app.listen(PORT, () => console.log(`Backend server started on port ${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 Backend server running on port ${PORT}`));
   })
   .catch(err => {
-    console.error('Database connection error:', err.message);
+    console.error('✘ Database connection error:', err.message);
     process.exit(1);
   });

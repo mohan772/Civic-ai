@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAnalyticsHotspots } from '../services/api';
 
 const CivicHotspots = () => {
   const [hotspots, setHotspots] = useState([]);
@@ -8,7 +8,7 @@ const CivicHotspots = () => {
   useEffect(() => {
     const fetchHotspots = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/analytics/hotspots');
+        const res = await getAnalyticsHotspots();
         setHotspots(res.data);
         setLoading(false);
       } catch (err) {

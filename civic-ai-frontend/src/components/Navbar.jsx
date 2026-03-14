@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from '../utils/axiosConfig';
 
 const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
   const userPhone = localStorage.getItem('userPhone') || '9876543210'; 
+  const isAdmin = !!localStorage.getItem('adminToken');
 
   const fetchNotifications = async () => {
     try {
@@ -35,141 +37,269 @@ const Navbar = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminEmail');
+    navigate('/admin-login');
+  };
+
   return (
     <nav className="gov-navbar">
       <div className="nav-container">
         <div className="navbar-brand">
           <Link to="/" className="brand-link">
-            <span className="portal-title">Civic Intelligence Portal</span>
+            <div className="brand-icon">🏛️</div>
+            <div className="brand-text">
+              <span className="portal-title">Civic AI</span>
+              <span className="portal-subtitle">Smart City Platform</span>
+            </div>
           </Link>
         </div>
         
-        <ul className="navbar-links">
-          <li><Link to="/dashboard">Dashboard</Link></li>
-          <li><Link to="/submit">Complaints</Link></li>
-          
-          <li className="notification-wrapper">
-            <div className="bell-icon" onClick={() => setShowDropdown(!showDropdown)}>
-              🔔 {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
-            </div>
-            {showDropdown && (
-              <div className="notification-dropdown">
-                <h3>Recent Notifications</h3>
-                {notifications.length === 0 ? (
-                  <p className="no-notif">No new alerts</p>
-                ) : (
-                  <div className="notif-list">
-                    {notifications.slice(0, 5).map(n => (
-                      <div 
-                        key={n._id} 
-                        className={`notif-item ${n.status}`}
-                        onClick={() => markAsRead(n._id)}
-                      >
-                        <p>{n.message}</p>
-                        <small>{new Date(n.createdAt).toLocaleDateString()}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </li>
+        <div className="nav-main">
+          <ul className="navbar-links">
+            <li><Link to="/dashboard" className="nav-link">Dashboard</Link></li>
+            <li><Link to="/submit" className="nav-link">Report Issue</Link></li>
+            <li><Link to="/status" className="nav-link">Track Status</Link></li>
+          </ul>
 
-          <li><Link to="/admin">Admin</Link></li>
-        </ul>
+          <div className="nav-actions">
+            <div className="notification-wrapper">
+              <button className={`icon-btn ${unreadCount > 0 ? 'has-unread' : ''}`} onClick={() => setShowDropdown(!showDropdown)}>
+                <span className="bell-icon">🔔</span>
+                {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
+              </button>
+              
+              {showDropdown && (
+                <div className="notification-dropdown shadow-lg">
+                  <div className="dropdown-header">
+                    <h3>Recent Alerts</h3>
+                    <span className="notif-count">{unreadCount} New</span>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="empty-notif">
+                      <p>No new notifications</p>
+                    </div>
+                  ) : (
+                    <div className="notif-list">
+                      {notifications.slice(0, 5).map(n => (
+                        <div 
+                          key={n._id} 
+                          className={`notif-item ${n.status}`}
+                          onClick={() => markAsRead(n._id)}
+                        >
+                          <p>{n.message}</p>
+                          <span className="notif-time">{new Date(n.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="auth-actions">
+              {isAdmin ? (
+                <>
+                  <Link to="/tickets" className="tickets-nav-link">Tickets</Link>
+                  <Link to="/admin" className="admin-btn">Admin Portal</Link>
+                  <button onClick={handleLogout} className="logout-btn">Sign Out</button>
+                </>
+              ) : (
+                <Link to="/admin-login" className="login-btn-link">Admin Login</Link>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <style>{`
         .gov-navbar {
-          background-color: var(--saffron);
-          padding: 15px 0;
-          color: white;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-          border-bottom: 4px solid var(--ashoka-blue);
+          background-color: var(--white);
+          height: 80px;
+          display: flex;
+          align-items: center;
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          border-bottom: 3px solid var(--saffron);
         }
         .nav-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 0 auto;
-          padding: 0 20px;
+          padding: 0 24px;
+          width: 100%;
         }
         .brand-link {
           text-decoration: none;
-          color: white;
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
+        .brand-icon { font-size: 2rem; }
+        .brand-text { display: flex; flex-direction: column; }
         .portal-title {
-          font-size: 1.5rem;
-          font-weight: 800;
-          letter-spacing: 1px;
-          text-transform: uppercase;
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: var(--ashoka-blue);
+          line-height: 1;
+          letter-spacing: -0.5px;
         }
+        .portal-subtitle {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: var(--saffron);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .nav-main { display: flex; align-items: center; gap: 40px; }
         .navbar-links {
           display: flex;
           list-style: none;
-          gap: 25px;
-          align-items: center;
+          gap: 30px;
           margin: 0;
           padding: 0;
         }
-        .navbar-links a {
-          color: white;
+        .nav-link {
+          color: var(--text-secondary);
           text-decoration: none;
           font-weight: 700;
-          font-size: 0.95rem;
-          transition: opacity 0.2s;
+          font-size: 0.9rem;
+          transition: var(--transition);
+          position: relative;
+          padding: 8px 0;
         }
-        .navbar-links a:hover {
-          opacity: 0.8;
+        .nav-link:hover { color: var(--ashoka-blue); }
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: var(--saffron);
+          transition: var(--transition);
         }
-        
-        .notification-wrapper { position: relative; cursor: pointer; display: flex; align-items: center; }
-        .bell-icon { font-size: 1.2rem; display: flex; align-items: center; position: relative; }
-        .unread-badge { 
-          position: absolute; 
-          top: -8px; 
-          right: -8px; 
-          background: var(--ashoka-blue); 
-          color: white; 
-          font-size: 0.65rem; 
-          padding: 2px 6px; 
-          border-radius: 10px; 
-          font-weight: 800; 
-          border: 2px solid var(--saffron); 
-        }
-        .notification-dropdown { 
-          position: absolute; 
-          top: 45px; 
-          right: 0; 
-          background: white; 
-          border: 1px solid #ddd; 
-          border-radius: 12px; 
-          width: 300px; 
-          max-height: 400px; 
-          overflow-y: auto; 
-          z-index: 1000; 
-          box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-        .notification-dropdown h3 { 
-          font-size: 0.9rem; 
-          padding: 12px 16px; 
-          margin: 0; 
-          border-bottom: 1px solid #eee; 
-          background: #fcfcfc; 
-          color: var(--ashoka-blue); 
-        }
-        .notif-item { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; color: var(--dark-text); }
-        .notif-item:hover { background: #f8f9fa; }
-        .notif-item.unread { border-left: 4px solid var(--saffron); background: #fff9f0; }
-        .notif-item p { margin: 0 0 5px 0; font-size: 0.85rem; line-height: 1.4; }
-        .notif-item small { color: #999; }
-        .no-notif { padding: 20px; text-align: center; color: #bbb; font-size: 0.85rem; }
+        .nav-link:hover::after { width: 100%; }
 
-        @media (max-width: 768px) {
-          .nav-container { flex-direction: column; gap: 15px; }
-          .portal-title { font-size: 1.2rem; }
-          .navbar-links { gap: 15px; }
+        .nav-actions { display: flex; align-items: center; gap: 24px; }
+        .icon-btn {
+          background: var(--bg-main);
+          border: none;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          cursor: pointer;
+        }
+        .icon-btn:hover { background: #EDF2F7; }
+        .bell-icon { font-size: 1.2rem; }
+        
+        .unread-badge {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          background: var(--danger);
+          color: white;
+          font-size: 0.7rem;
+          min-width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          font-weight: 800;
+          border: 2px solid var(--white);
+        }
+
+        .notification-dropdown {
+          position: absolute;
+          top: 60px;
+          right: 0;
+          background: var(--white);
+          border-radius: 16px;
+          width: 320px;
+          box-shadow: var(--shadow-lg);
+          border: 1px solid var(--border);
+          overflow: hidden;
+        }
+        .dropdown-header {
+          padding: 16px;
+          background: var(--bg-main);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid var(--border);
+        }
+        .dropdown-header h3 { font-size: 0.9rem; margin: 0; }
+        .notif-count { font-size: 0.75rem; font-weight: 800; color: var(--danger); }
+        
+        .notif-list { max-height: 350px; overflow-y: auto; }
+        .notif-item {
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .notif-item:hover { background: #F8FAFC; }
+        .notif-item.unread { background: #FFF9F0; border-left: 4px solid var(--saffron); }
+        .notif-item p { font-size: 0.85rem; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; }
+        .notif-time { font-size: 0.7rem; color: var(--text-muted); }
+
+        .auth-actions { display: flex; gap: 12px; align-items: center; }
+        .tickets-nav-link {
+          color: var(--ashoka-blue);
+          text-decoration: none;
+          font-weight: 800;
+          font-size: 0.85rem;
+          padding: 10px 18px;
+          border: 2px solid var(--ashoka-blue);
+          border-radius: 8px;
+          transition: var(--transition);
+        }
+        .tickets-nav-link:hover {
+          background: var(--ashoka-blue);
+          color: white;
+        }
+        .admin-btn {
+          background: var(--ashoka-blue);
+          color: white;
+          text-decoration: none;
+          padding: 10px 18px;
+          border-radius: 8px;
+          font-weight: 800;
+          font-size: 0.85rem;
+        }
+        .logout-btn {
+          background: var(--danger);
+          color: white;
+          padding: 10px 18px;
+          border: none;
+          border-radius: 8px;
+          font-weight: 800;
+          font-size: 0.85rem;
+          cursor: pointer;
+        }
+        .login-btn-link {
+          color: var(--ashoka-blue);
+          text-decoration: none;
+          font-weight: 800;
+          font-size: 0.85rem;
+          padding: 10px 18px;
+          border: 2px solid var(--ashoka-blue);
+          border-radius: 8px;
+        }
+
+        @media (max-width: 992px) {
+          .nav-main { display: none; }
         }
       `}</style>
     </nav>

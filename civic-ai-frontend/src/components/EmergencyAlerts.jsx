@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAnalyticsAlerts } from '../services/api';
 
 const EmergencyAlerts = () => {
   const [alerts, setAlerts] = useState([]);
@@ -7,7 +7,7 @@ const EmergencyAlerts = () => {
 
   const fetchAlerts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/analytics/emergency-alerts');
+      const res = await getAnalyticsAlerts();
       setAlerts(res.data.alerts);
       setLoading(false);
     } catch (err) {

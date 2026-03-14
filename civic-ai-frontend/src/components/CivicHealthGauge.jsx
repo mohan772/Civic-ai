@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAnalyticsHealth } from '../services/api';
 
 const CivicHealthGauge = () => {
   const [data, setData] = useState(null);
@@ -8,7 +8,7 @@ const CivicHealthGauge = () => {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/analytics/civic-health');
+        const res = await getAnalyticsHealth();
         setData(res.data);
         setLoading(false);
       } catch (err) {

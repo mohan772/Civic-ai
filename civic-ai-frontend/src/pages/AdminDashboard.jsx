@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
 import ResourceAllocationPanel from '../components/ResourceAllocationPanel';
 import ComplaintCard from '../components/ComplaintCard';
@@ -16,7 +16,6 @@ const AdminDashboard = () => {
   const [allComplaints, setAllComplaints] = useState([]); 
   const [loading, setLoading] = useState(true);
   
-  // Requirement: Grouping by Status or Department
   const [viewMode, setViewMode] = useState('status'); 
   const [activeTab, setActiveTab] = useState('Pending'); 
 
@@ -28,7 +27,6 @@ const AdminDashboard = () => {
     fetchAllComplaints(); 
   }, [activeTab, viewMode]);
 
-  // Background sync for Live Ticket Distribution summary
   useEffect(() => {
     const interval = setInterval(fetchAllComplaints, 30000); 
     return () => clearInterval(interval);
@@ -37,17 +35,15 @@ const AdminDashboard = () => {
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      let url = `http://localhost:5000/api/complaints`;
-      const params = new URLSearchParams();
-      
+      const params = {};
       if (viewMode === 'status') {
-        params.append('status', activeTab);
+        params.status = activeTab;
       } else {
-        params.append('department', activeTab);
-        params.append('status', 'Accepted'); // Only show accepted complaints for departments
+        params.department = activeTab;
+        params.status = 'Accepted';
       }
       
-      const response = await axios.get(`${url}?${params.toString()}`);
+      const response = await api.get('/complaints', { params });
       setComplaints(response.data);
       setLoading(false);
     } catch (err) {
@@ -58,162 +54,307 @@ const AdminDashboard = () => {
 
   const fetchAllComplaints = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/complaints');
+      const response = await api.get('/complaints');
       setAllComplaints(response.data);
     } catch (err) {}
   };
 
-  // Calculate ticket counts per department for the summary
   const getDeptCount = (dept) => allComplaints.filter(c => c.department === dept && c.ticketId).length;
 
-  if (loading) return <div className="loading">Refreshing Portal Data...</div>;
+  if (loading && complaints.length === 0) return (
+    <div className="admin-loading-screen">
+      <div className="loader-pulse"></div>
+      <p>Initializing Command Center...</p>
+    </div>
+  );
 
   return (
     <div className="admin-page-container">
-      <header className="page-header">
-        <h1>Administrative Oversight Panel</h1>
-        <div className="accent-bar"></div>
+      <header className="admin-page-header">
+        <div className="header-top">
+          <div className="header-title-group">
+            <span className="live-indicator">● LIVE SYSTEM</span>
+            <h1>Administrative Oversight Panel</h1>
+          </div>
+          <div className="header-meta">
+            <div className="meta-item">
+              <span className="meta-label">Total Volume</span>
+              <span className="meta-value">{allComplaints.length}</span>
+            </div>
+            <div className="meta-item">
+              <span className="meta-label">System Integrity</span>
+              <span className="meta-value">99.8%</span>
+            </div>
+          </div>
+        </div>
+        <div className="accent-bar-full"></div>
       </header>
       
-      <div className="dashboard-top-section">
-        <LiveCityMetrics />
-        <EmergencyAlerts />
-      </div>
+      <div className="dashboard-grid-layout">
+        {/* Left Column: Alerts & Metrics */}
+        <aside className="dashboard-sidebar">
+          <LiveCityMetrics />
+          <EmergencyAlerts />
+          <CivicHotspots />
+        </aside>
 
-      <DashboardStats />
-
-      {/* NEW: Analytics Section */}
-      <section className="analytics-dashboard-grid">
-        <CivicHealthGauge />
-        <DepartmentPerformance />
-      </section>
-
-      {/* Ticket Breakdown by Category/Department */}
-      <section className="ticket-summary-section">
-        <h3 className="section-subtitle">Live Ticket Distribution</h3>
-        <div className="dept-summary-grid">
-          {departmentTabs.map(dept => (
-            <div key={dept} className="dept-summary-card">
-              <span className="dept-name">{dept}</span>
-              <span className="dept-count">{getDeptCount(dept)} Tickets</span>
+        {/* Right Column: Analytics & Queue */}
+        <main className="dashboard-main-content">
+          <section className="analytics-hero">
+            <div className="analytics-card-pair">
+              <CivicHealthGauge />
+              <DepartmentPerformance />
             </div>
-          ))}
-        </div>
-      </section>
-      
-      <div className="heatmap-section-gov">
-        <div className="section-title-box">
-          <h2 className="heatmap-title">Bengaluru Civic Complaint Heatmap</h2>
-        </div>
-        <BangaloreHeatmap complaints={allComplaints} />
-      </div>
+          </section>
 
-      {/* NEW: Hotspots Section */}
-      <section className="hotspots-section-gov">
-        <CivicHotspots />
-      </section>
+          <DashboardStats />
 
-      <div className="admin-content">
-        <div className="view-toggle">
-          <button 
-            className={viewMode === 'status' ? 'active' : ''} 
-            onClick={() => {setViewMode('status'); setActiveTab('Pending');}}
-          >
-            Moderation View
-          </button>
-          <button 
-            className={viewMode === 'dept' ? 'active' : ''} 
-            onClick={() => {setViewMode('dept'); setActiveTab('BBMP Roads');}}
-          >
-            Departmental Oversight
-          </button>
-        </div>
+          <section className="heatmap-container-card card">
+            <div className="card-header">
+              <h3>Geospatial Incident Density</h3>
+              <p>Visualizing real-time civic hotspots across the Bengaluru metropolitan region.</p>
+            </div>
+            <BangaloreHeatmap complaints={allComplaints} />
+          </section>
 
-        <div className="gov-tabs">
-          {(viewMode === 'status' ? statusTabs : departmentTabs).map(tab => (
-            <button 
-              key={tab} 
-              className={`gov-tab-btn ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+          <div className="moderation-workspace card">
+            <div className="workspace-header">
+              <div className="view-selector">
+                <button 
+                  className={`view-btn ${viewMode === 'status' ? 'active' : ''}`} 
+                  onClick={() => {setViewMode('status'); setActiveTab('Pending');}}
+                >
+                  Moderation View
+                </button>
+                <button 
+                  className={`view-btn ${viewMode === 'dept' ? 'active' : ''}`} 
+                  onClick={() => {setViewMode('dept'); setActiveTab('BBMP Roads');}}
+                >
+                  Departmental View
+                </button>
+              </div>
+              <div className="tab-navigation">
+                {(viewMode === 'status' ? statusTabs : departmentTabs).map(tab => (
+                  <button 
+                    key={tab} 
+                    className={`nav-tab-btn ${activeTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab}
+                    {viewMode === 'dept' && <span className="tab-count">{getDeptCount(tab)}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <section className="mod-queue">
-          <h3 className="queue-title">{activeTab} Queue</h3>
-          <div className="complaints-grid-gov">
-            {complaints.length > 0 ? (
-              complaints.map(complaint => (
-                <ComplaintCard 
-                  key={complaint._id} 
-                  complaint={complaint} 
-                  isAdmin={true}
-                  onRefresh={fetchComplaints}
-                />
-              ))
-            ) : (
-              <div className="gov-empty">No records found for {activeTab}.</div>
-            )}
+            <div className="queue-container">
+              <div className="queue-info">
+                <h4>{activeTab} Queue</h4>
+                <span>{complaints.length} Records Found</span>
+              </div>
+              
+              <div className="complaints-grid-modern">
+                {complaints.length > 0 ? (
+                  complaints.map(complaint => (
+                    <ComplaintCard 
+                      key={complaint._id} 
+                      complaint={complaint} 
+                      isAdmin={true}
+                      onRefresh={fetchComplaints}
+                    />
+                  ))
+                ) : (
+                  <div className="empty-queue-state">
+                    <span className="empty-icon">📂</span>
+                    <p>No complaints currently in this queue.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </section>
+        </main>
       </div>
-
-      <footer className="footer">
-        Smart Civic Governance Platform &copy; {new Date().getFullYear()}
-      </footer>
 
       <style>{`
-        .admin-page-container { background-color: #fcfcfc; min-height: 100vh; padding-bottom: 50px; }
-        .page-header { margin-bottom: 40px; text-align: center; }
-        .page-header h1 { font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; }
-        .accent-bar { width: 80px; height: 4px; background: var(--saffron); margin: 0 auto; }
+        .admin-page-container {
+          background-color: var(--bg-main);
+          min-height: 100vh;
+        }
 
-        .dashboard-top-section {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 25px;
-          padding: 0 20px;
+        .admin-page-header {
+          background: white;
+          padding: 40px 24px 0;
           margin-bottom: 30px;
         }
 
-        .section-subtitle { font-size: 1rem; color: var(--ashoka-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid var(--saffron); display: inline-block; }
-        .ticket-summary-section { margin-bottom: 40px; padding: 0 20px; }
-        .dept-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
-        .dept-summary-card { background: white; padding: 15px; border-radius: 10px; border-top: 4px solid var(--ashoka-blue); box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; transition: all 0.3s; }
-        .dept-summary-card:hover { border-top-color: var(--saffron); transform: translateY(-3px); }
-        .dept-name { display: block; font-size: 0.7rem; font-weight: 800; color: #666; text-transform: uppercase; margin-bottom: 5px; }
-        .dept-count { font-size: 1.3rem; font-weight: 900; color: var(--ashoka-blue); }
-        
-        .analytics-dashboard-grid { 
-          display: grid; 
-          grid-template-columns: 1fr 2fr; 
-          gap: 25px; 
-          padding: 0 20px; 
-          margin-bottom: 40px; 
-        }
-        .hotspots-section-gov {
-          padding: 0 20px;
-          margin-bottom: 40px;
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          max-width: 1400px;
+          margin: 0 auto;
+          padding-bottom: 30px;
         }
 
-        .view-toggle { display: flex; gap: 10px; margin-bottom: 25px; padding: 0 20px; }
-
-        @media (max-width: 992px) {
-          .analytics-dashboard-grid { grid-template-columns: 1fr; }
+        .header-title-group .live-indicator {
+          font-size: 0.75rem;
+          font-weight: 900;
+          color: var(--danger);
+          letter-spacing: 1px;
+          margin-bottom: 8px;
+          display: block;
         }
-        .view-toggle button { padding: 10px 25px; border: 2px solid var(--ashoka-blue); background: white; color: var(--ashoka-blue); font-size: 0.85rem; font-weight: 800; border-radius: 30px; cursor: pointer; transition: all 0.3s; }
-        .view-toggle button.active { background: var(--ashoka-blue); color: white; }
 
-        .gov-tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #eee; overflow-x: auto; padding-bottom: 10px; padding-left: 20px; }
-        .gov-tab-btn { background: none; border: none; padding: 10px 20px; font-size: 0.9rem; font-weight: 700; color: #777; white-space: nowrap; position: relative; cursor: pointer; }
-        .gov-tab-btn.active { color: var(--saffron); }
-        .gov-tab-btn.active::after { content: ''; position: absolute; bottom: -12px; left: 0; right: 0; height: 4px; background: var(--saffron); }
+        .header-title-group h1 { margin: 0; font-size: 2.5rem; }
 
-        .admin-content { padding: 0 20px; }
-        .complaints-grid-gov { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 25px; }
-        .gov-empty { background: white; padding: 60px; text-align: center; border-radius: 12px; color: #aaa; font-style: italic; border: 1px dashed #ddd; }
+        .header-meta { display: flex; gap: 40px; }
+        .meta-item { display: flex; flex-direction: column; align-items: flex-end; }
+        .meta-label { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .meta-value { font-size: 1.5rem; font-weight: 900; color: var(--ashoka-blue); }
+
+        .accent-bar-full { height: 4px; background: var(--saffron); width: 100%; }
+
+        .dashboard-grid-layout {
+          display: grid;
+          grid-template-columns: 350px 1fr;
+          gap: 30px;
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 24px 60px;
+        }
+
+        .dashboard-sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .dashboard-main-content { display: flex; flex-direction: column; gap: 30px; }
+
+        .analytics-card-pair {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 24px;
+        }
+
+        .card-header { margin-bottom: 24px; }
+        .card-header h3 { margin: 0 0 4px 0; font-size: 1.25rem; }
+        .card-header p { margin: 0; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
+
+        .moderation-workspace { padding: 0 !important; overflow: hidden; }
+        .workspace-header {
+          background: #F8FAFC;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .view-selector {
+          padding: 16px 24px;
+          display: flex;
+          gap: 12px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .view-btn {
+          background: white;
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          padding: 8px 16px;
+          font-size: 0.85rem;
+        }
+
+        .view-btn.active {
+          background: var(--ashoka-blue);
+          color: white;
+          border-color: var(--ashoka-blue);
+        }
+
+        .tab-navigation {
+          padding: 0 24px;
+          display: flex;
+          gap: 4px;
+          overflow-x: auto;
+        }
+
+        .nav-tab-btn {
+          background: none;
+          border: none;
+          padding: 16px 20px;
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          position: relative;
+          white-space: nowrap;
+        }
+
+        .nav-tab-btn.active {
+          color: var(--saffron);
+          font-weight: 800;
+        }
+
+        .nav-tab-btn.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--saffron);
+        }
+
+        .tab-count {
+          background: #EDF2F7;
+          color: var(--text-secondary);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          margin-left: 8px;
+        }
+
+        .queue-container { padding: 24px; }
+        .queue-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        .queue-info h4 { margin: 0; font-size: 1.1rem; }
+        .queue-info span { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
+
+        .complaints-grid-modern {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: 20px;
+        }
+
+        .empty-queue-state {
+          grid-column: 1 / -1;
+          padding: 80px;
+          text-align: center;
+          color: var(--text-muted);
+        }
+        .empty-icon { font-size: 3rem; display: block; margin-bottom: 16px; }
+
+        .admin-loading-screen {
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-main);
+        }
+        .loader-pulse {
+          width: 60px;
+          height: 60px;
+          background: var(--ashoka-blue);
+          border-radius: 50%;
+          animation: pulse-ring 1.5s infinite;
+          margin-bottom: 20px;
+        }
+
+        @keyframes pulse-ring {
+          0% { transform: scale(0.8); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(0.8); opacity: 0.5; }
+        }
+
+        @media (max-width: 1200px) {
+          .dashboard-grid-layout { grid-template-columns: 1fr; }
+          .analytics-card-pair { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );

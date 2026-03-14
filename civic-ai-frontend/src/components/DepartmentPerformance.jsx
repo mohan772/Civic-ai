@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAnalyticsPerformance } from '../services/api';
 
 const DepartmentPerformance = () => {
   const [departments, setDepartments] = useState([]);
@@ -8,7 +8,7 @@ const DepartmentPerformance = () => {
   useEffect(() => {
     const fetchPerf = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/analytics/department-performance');
+        const res = await getAnalyticsPerformance();
         setDepartments(res.data);
         setLoading(false);
       } catch (err) {
